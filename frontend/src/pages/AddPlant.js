@@ -54,7 +54,7 @@ const AddPlant = () => {
     formData.append("file", qrFile);
     try {
       // Бэкенд проверит, есть ли QR в базе
-      const response = await axios.post("http://127.0.0.1:8000/verify-qr", formData);
+      const response = await axios.post("https://deforest-api.onrender.com/verify-qr", formData);
       setQrData(response.data); // Сохраняем тип дерева и ID
       setStep(2); // ПЕРЕХОДИМ К ФОТО
     } catch (err) {
@@ -74,7 +74,7 @@ const AddPlant = () => {
     formData.append("qr_code", qrData.qr_code); // Передаем ID из 1 шага
 
     try {
-      const response = await axios.post("http://127.0.0.1:8000/predict", formData);
+      const response = await axios.post("https://deforest-api.onrender.com/predict", formData);
       if (!response.data.success) {
           setError(response.data.message);
       } else {

@@ -5,7 +5,7 @@ import { Trophy } from 'lucide-react';
 const Leaderboard = () => {
   const [users, setUsers] = useState([]);
   useEffect(() => {
-    axios.get("http://127.0.0.1:8000/leaderboard").then(res => setUsers(res.data));
+    axios.get("https://deforest-api.onrender.com/leaderboard").then(res => setUsers(res.data));
   }, []);
 
   return (

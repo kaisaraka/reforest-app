@@ -13,7 +13,7 @@ const Login = () => {
     if (!username.trim()) return;
     setLoading(true);
     try {
-      const response = await axios.post("https://deforest-api.onrender.com/register", { username });
+      const response = await axios.post("https://reforest-app.onrender.com", { username });
       localStorage.setItem("user", JSON.stringify(response.data));
       navigate("/forest"); 
     } catch (error) {

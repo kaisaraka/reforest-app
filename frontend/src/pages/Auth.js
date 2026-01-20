@@ -20,7 +20,7 @@ const Auth = ({ setIsAuthenticated }) => {
     const endpoint = isLogin ? "/login" : "/register";
     
     try {
-      const response = await axios.post(`https://deforest-api.onrender.com${endpoint}`, {
+      const response = await axios.post(`https://reforest-app.onrender.com${endpoint}`, {
         username,
         password
       });

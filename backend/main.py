@@ -1,7 +1,18 @@
-# ... (твои старые импорты)
-from passlib.context import CryptContext # Импортируем шифровальщик
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from pydantic import BaseModel  # <--- ВОТ ЭТОГО НЕ ХВАТАЛО!
+from passlib.context import CryptContext
+from typing import Optional
 
-# ... (инициализация app и базы)
+# Импорты из твоих файлов
+import models
+from models import User
+from database import engine, SessionLocal, get_db
+
+# Создаем таблицы в базе данных (если их нет)
+models.Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
 
 # НАСТРОЙКА ПАРОЛЕЙ
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -17,7 +28,7 @@ class UserAuth(BaseModel):
     username: str
     password: str
 
-# --- ОБНОВЛЕННЫЙ ENDPOINT: РЕГИСТРАЦИЯ ---
+# --- ENDPOINT: РЕГИСТРАЦИЯ ---
 @app.post("/register")
 def register(user_data: UserAuth, db: Session = Depends(get_db)):
     # 1. Проверяем, есть ли такой юзер
@@ -34,7 +45,7 @@ def register(user_data: UserAuth, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return {"id": new_user.id, "username": new_user.username, "score": 0}
 
-# --- НОВЫЙ ENDPOINT: ВХОД (LOGIN) ---
+# --- ENDPOINT: ВХОД (LOGIN) ---
 @app.post("/login")
 def login(user_data: UserAuth, db: Session = Depends(get_db)):
     # 1. Ищем юзера
@@ -48,4 +59,5 @@ def login(user_data: UserAuth, db: Session = Depends(get_db)):
     
     return {"id": user.id, "username": user.username, "score": user.score}
 
-# ... (Остальной код verify-qr, predict, forest остается как был)
+# --- СЮДА МОЖНО ВЕРНУТЬ ТВОИ ОСТАЛЬНЫЕ ФУНКЦИИ ---
+# (verify-qr, get_forest, и т.д., если они у тебя были ниже)

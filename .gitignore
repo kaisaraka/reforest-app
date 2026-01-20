@@ -1,0 +1,18 @@
+# Node modules (фронтенд мусор)
+node_modules/
+build/
+npm-debug.log
+
+# Python (бэкенд мусор)
+__pycache__/
+*.py[cod]
+venv/
+env/
+.env
+
+# Mac system files
+.DS_Store
+
+# База данных (локальная не нужна в облаке)
+*.db
+sql_app.db

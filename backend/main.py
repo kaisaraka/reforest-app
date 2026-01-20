@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel  # <--- ВОТ ЭТОГО НЕ ХВАТАЛО!
 from passlib.context import CryptContext
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 
 # Импорты из твоих файлов
@@ -14,6 +15,13 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Разрешаем запросы с любых сайтов
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # НАСТРОЙКА ПАРОЛЕЙ
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

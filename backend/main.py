@@ -7,16 +7,15 @@ from typing import List, Optional
 
 # Импорты твоих модулей
 import models
-from models import User, QRCode  # Убедись, что QRCode есть в models.py
+from models import User, QRCode
 from database import engine, SessionLocal, get_db
 
-# Создаем таблицы в базе данных (если их еще нет)
+# Создаем таблицы в базе данных
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 # --- НАСТРОЙКА CORS ---
-# Это позволяет твоему фронтенду на Vercel общаться с бэкендом на Render
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -43,7 +42,12 @@ class QRVerifyRequest(BaseModel):
     qr_data: str
     user_id: int
 
-# --- ЭНДПОИНТ: РЕГИСТРАЦИЯ ---
+# --- 1. ГЛАВНАЯ СТРАНИЦА (Чтобы не было 404) ---
+@app.get("/")
+def home():
+    return {"status": "success", "message": "DeForest API is running"}
+
+# --- 2. РЕГИСТРАЦИЯ ---
 @app.post("/register")
 def register(user_data: UserAuth, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user_data.username).first()
@@ -58,7 +62,7 @@ def register(user_data: UserAuth, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return {"id": new_user.id, "username": new_user.username, "score": 0}
 
-# --- ЭНДПОИНТ: ВХОД (LOGIN) ---
+# --- 3. ВХОД (LOGIN) ---
 @app.post("/login")
 def login(user_data: UserAuth, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == user_data.username).first()
@@ -67,37 +71,33 @@ def login(user_data: UserAuth, db: Session = Depends(get_db)):
     
     return {"id": user.id, "username": user.username, "score": user.score}
 
-# --- ЭНДПОИНТ: ПРОВЕРКА QR-КОДА ---
+# --- 4. ПРОВЕРКА QR-КОДА ПО ТВОЕЙ БАЗЕ ---
 @app.post("/verify-qr")
 def verify_qr(request: QRVerifyRequest, db: Session = Depends(get_db)):
-    # 1. Ищем QR-код в твоей базе данных qr_codes
-    # Предполагаем, что в модели QRCode поле называется 'code'
+    # Ищем код в таблице QRCode (убедись, что поле в QRCode называется code)
     qr_entry = db.query(QRCode).filter(QRCode.code == request.qr_data).first()
     
     if not qr_entry:
         raise HTTPException(status_code=400, detail="QR Code Invalid")
 
-    # 2. Если QR найден, ищем пользователя
+    # Ищем пользователя
     user = db.query(User).filter(User.id == request.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # 3. Начисляем очки (например, 1 Lf)
+    # Начисляем 1 очко
     user.score += 1
-    
-    # Можно добавить пометку, что этот QR уже использован, если у тебя есть такое поле:
-    # qr_entry.is_used = True 
-    
     db.commit()
     db.refresh(user)
 
     return {
         "status": "success", 
         "new_score": user.score, 
-        "message": "Tree verified and planted!"
+        "message": "Tree verified!"
     }
 
-# --- ЭНДПОИНТ: ПОЛУЧЕНИЕ ТОПА ПОЛЬЗОВАТЕЛЕЙ (для таблицы лидеров) ---
-@app.get("/users/top")
+# --- 5. ТОП ПОЛЬЗОВАТЕЛЕЙ ---
+@app.get("/top-users")
 def get_top_users(db: Session = Depends(get_db)):
-    return db.query(User).order_by(User.score.desc()).limit(10).all()
+    users = db.query(User).order_by(User.score.desc()).limit(10).all()
+    return users

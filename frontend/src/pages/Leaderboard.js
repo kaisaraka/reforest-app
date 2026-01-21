@@ -4,8 +4,12 @@ import { Trophy } from 'lucide-react';
 
 const Leaderboard = () => {
   const [users, setUsers] = useState([]);
+  
   useEffect(() => {
-    axios.get("https://https://reforest-app.onrender.comonrender.com/leaderboard").then(res => setUsers(res.data));
+    // ИСПРАВЛЕНА ССЫЛКА
+    axios.get("https://reforest-app.onrender.com/leaderboard")
+         .then(res => setUsers(res.data))
+         .catch(err => console.error(err));
   }, []);
 
   return (
@@ -17,26 +21,28 @@ const Leaderboard = () => {
 
       <div style={{ 
         background: "#EFEEEE", borderRadius: "20px", padding: "20px",
-        // МЯГКАЯ ТЕНЬ КОНТЕЙНЕРА
         boxShadow: "10px 10px 20px rgba(0,0,0,0.05), -10px -10px 20px rgba(255,255,255,0.8)"
       }}>
-        {users.map((user, index) => (
-          <div key={user.id} style={{ 
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            background: "#EFEEEE", borderRadius: "12px", padding: "15px", marginBottom: "15px",
-            // МЯГКАЯ ТЕНЬ ЭЛЕМЕНТА СПИСКА
-            boxShadow: "5px 5px 10px rgba(0,0,0,0.05), -5px -5px 10px rgba(255,255,255,0.8)"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-              <div style={{ fontSize: "18px", fontWeight: "900", color: "#888", width: "20px" }}>#{index + 1}</div>
-              <div>
-                <div style={{ fontWeight: "800", color: "#333", fontSize: "15px" }}>{user.username}</div>
-                <div style={{ fontSize: "11px", color: "#666" }}>{user.score > 0 ? `${user.score / 50} trees` : "No trees"}</div>
+        {users.length === 0 ? (
+          <div style={{textAlign: "center", color: "#888"}}>Loading...</div>
+        ) : (
+          users.map((user, index) => (
+            <div key={user.id} style={{ 
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: "#EFEEEE", borderRadius: "12px", padding: "15px", marginBottom: "15px",
+              boxShadow: "5px 5px 10px rgba(0,0,0,0.05), -5px -5px 10px rgba(255,255,255,0.8)"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                <div style={{ fontSize: "18px", fontWeight: "900", color: "#888", width: "20px" }}>#{index + 1}</div>
+                <div>
+                  <div style={{ fontWeight: "800", color: "#333", fontSize: "15px" }}>{user.username}</div>
+                  <div style={{ fontSize: "11px", color: "#666" }}>{user.score > 0 ? `${user.score / 50} trees` : "No trees"}</div>
+                </div>
               </div>
+              <div style={{ color: "#6A996F", fontWeight: "800", fontSize: "16px" }}>{user.score} Lf</div>
             </div>
-            <div style={{ color: "#6A996F", fontWeight: "800", fontSize: "16px" }}>{user.score} Lf</div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

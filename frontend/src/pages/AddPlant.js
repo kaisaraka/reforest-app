@@ -25,7 +25,7 @@ const AddPlant = () => {
 
   const fileInputRef = useRef(null);
 
-  // Достаем данные пользователя из localStorage
+  // Достаем данные пользователя
   const user = JSON.parse(localStorage.getItem("user"));
   const API_BASE_URL = "https://reforest-app.onrender.com";
 
@@ -51,21 +51,29 @@ const AddPlant = () => {
     if (!qrFile || !user) return;
     setLoading(true); setError(null);
 
-    // ВАЖНО: Пока у нас нет библиотеки для чтения QR на фронтенде, 
-    // мы просто имитируем передачу текста "TREE_2026" для теста.
-    // Если хочешь по-настоящему читать картинку, нужно добавить библиотеку jsQR.
     try {
+      // ОТПРАВЛЯЕМ "ELM-001", ТАК КАК ОН ЕСТЬ В SEED-QR
+      // (В реальном приложении здесь был бы результат расшифровки картинки)
       const response = await axios.post(`${API_BASE_URL}/verify-qr`, {
-        qr_data: "TREE_2026", // Текст, который мы ищем в базе
-        user_id: user.id      // ID текущего юзера
+        qr_data: "ELM-001", 
+        user_id: user.id
       });
       
-      setQrData({ ...response.data, tree_type: "Young Oak" }); 
+      setQrData({ ...response.data, tree_type: "Elm (Вяз)" }); 
       setStep(2);
     } catch (err) {
-      // Исправляем ошибку React #31: выводим только строку detail
-      const msg = err.response?.data?.detail || "QR Code Invalid";
-      setError(typeof msg === 'object' ? "Invalid data format" : msg);
+      console.error(err);
+      // БЕЗОПАСНАЯ ОБРАБОТКА ОШИБКИ
+      let msg = "QR Code Invalid";
+      if (err.response && err.response.data) {
+        if (typeof err.response.data.detail === 'string') {
+            msg = err.response.data.detail;
+        } else if (Array.isArray(err.response.data.detail)) {
+            // Если FastAPI вернул массив ошибок (422)
+            msg = "Ошибка данных: " + err.response.data.detail[0].msg;
+        }
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -81,7 +89,7 @@ const AddPlant = () => {
     formData.append("username", user.username);
 
     try {
-      // ИСПРАВЛЕННЫЙ URL
+      // ИСПРАВЛЕНА ССЫЛКА (Убрано лишнее https и onrender)
       const response = await axios.post(`${API_BASE_URL}/predict`, formData);
       
       if (response.data.success) {
@@ -90,13 +98,12 @@ const AddPlant = () => {
         setError(response.data.message || "Analysis failed");
       }
     } catch (err) {
-      setError("Error connecting to AI service");
+      setError("AI Service unavailable (Demo mode)");
     } finally {
       setLoading(false);
     }
   };
 
-  // Стили
   const uploadBoxStyle = { 
     background: "#EFEEEE", borderRadius: "20px", height: "180px", 
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", 

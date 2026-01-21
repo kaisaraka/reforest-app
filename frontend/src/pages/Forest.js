@@ -5,10 +5,8 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { X, Droplets, Clock, AlertTriangle, MapPin, Leaf } from 'lucide-react';
 
-// URL картинки дерева
 const TREE_IMG_URL = 'https://cdn-icons-png.flaticon.com/512/490/490091.png';
 
-// --- ИКОНКА ДЕРЕВА ---
 const createTreeIcon = (status, isSelected) => {
   const size = isSelected ? 42 : 32;
   const anchor = [size / 2, size];
@@ -26,7 +24,6 @@ const createTreeIcon = (status, isSelected) => {
   });
 };
 
-// --- ИКОНКА ЛЕПЕСТКА ДЛЯ ЦЕНТРА ЗОНЫ ---
 const createZoneIcon = () => {
   const svgIcon = `
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#48bb78" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -47,7 +44,8 @@ const Forest = () => {
   useEffect(() => {
     const fetchTrees = async () => {
       try {
-        const res = await axios.get("https://https://reforest-app.onrender.comonrender.com/forest");
+        // ИСПРАВЛЕНА ССЫЛКА
+        const res = await axios.get("https://reforest-app.onrender.com/forest");
         setTrees(res.data);
         setSelectedTree(prev => prev ? res.data.find(t => t.id === prev.id) || prev : null);
       } catch (err) { console.error(err); }
@@ -62,34 +60,20 @@ const Forest = () => {
 
   return (
     <div style={{ padding: "0 24px 120px 24px" }}>
-      
-      {/* ХЕДЕР СТРАНИЦЫ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", marginTop: "10px" }}>
-        
-        {/* ЛЕВАЯ ЧАСТЬ */}
         <h2 style={{ fontSize: "13px", fontWeight: "800", color: "#333", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>
           Forest Map
         </h2>
-
-        {/* ПРАВАЯ ЧАСТЬ: Легенда + Кнопка */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          
-          {/* ЛЕГЕНДА С ТИРЕ */}
           {showRecommended && (
             <div style={{ display: "flex", alignItems: "center", gap: "6px", animation: "fadeIn 0.3s ease" }}>
               <Leaf size={14} color="#48bb78" fill="#48bb78" />
-              
-              {/* Тире */}
               <span style={{ fontSize: "10px", fontWeight: "800", color: "#333" }}>-</span>
-              
-              {/* Текст */}
               <span style={{ fontSize: "10px", fontWeight: "800", color: "#333", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 Recommended Area
               </span>
             </div>
           )}
-
-          {/* Кнопка переключения */}
           <button 
             onClick={() => setShowRecommended(!showRecommended)}
             style={{
@@ -104,24 +88,15 @@ const Forest = () => {
             <MapPin size={12} /> {showRecommended ? "Hide" : "Areas"}
           </button>
         </div>
-
       </div>
 
-      {/* КАРТА */}
       <div style={{ height: "350px", borderRadius: "20px", overflow: "hidden", position: "relative", boxShadow: "inset 6px 6px 12px #bebebe, inset -6px -6px 12px #ffffff", border: "4px solid #EFEEEE" }}>
         <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%", background: "#222" }} zoomControl={false}>
           <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
           
           {showRecommended && (
             <>
-              {/* Круг */}
-              <Circle 
-                center={recommendedZone.center} 
-                radius={recommendedZone.radius}
-                pathOptions={{ stroke: false, fillColor: '#48bb78', fillOpacity: 0.15 }} 
-                interactive={false}
-              />
-              {/* Иконка лепестка */}
+              <Circle center={recommendedZone.center} radius={recommendedZone.radius} pathOptions={{ stroke: false, fillColor: '#48bb78', fillOpacity: 0.15 }} interactive={false} />
               <Marker position={recommendedZone.center} icon={createZoneIcon()} interactive={false} />
             </>
           )}
@@ -132,7 +107,6 @@ const Forest = () => {
         </MapContainer>
       </div>
 
-      {/* КАРТОЧКА ДЕРЕВА */}
       {selectedTree && (
         <div style={{ marginTop: "25px", background: "#EFEEEE", borderRadius: "16px", padding: "20px", border: `2px solid ${getStatusColor(selectedTree.status)}`, boxShadow: "0 10px 30px rgba(0,0,0,0.1)", position: "relative", animation: "slideUp 0.3s ease-out" }}>
           <button onClick={() => setSelectedTree(null)} style={{ position: "absolute", top: "10px", right: "10px", background: "transparent", border: "none", cursor: "pointer", color: "#888" }}><X size={18} /></button>

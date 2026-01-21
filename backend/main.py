@@ -114,3 +114,28 @@ def seed_qr(db: Session = Depends(get_db)):
     
     db.commit()
     return {"status": "success", "added": added_count, "message": "Database synchronized with QR IDs"}
+# Схема для дерева
+class TreeResponse(BaseModel):
+    id: int
+    pos: list # [lat, lng]
+    status: str # 'green', 'yellow', 'red'
+    tree_type: str
+    user: str
+    water_amount: str
+    days_left: int
+
+@app.get("/forest", response_model=List[TreeResponse])
+def get_forest(db: Session = Depends(get_db)):
+    # Здесь должна быть логика получения деревьев из базы
+    # Для теста можно вернуть статический список:
+    return [
+        {
+            "id": 1,
+            "pos": [42.8953, 71.3737],
+            "status": "green",
+            "tree_type": "Young Oak",
+            "user": "kaisar",
+            "water_amount": "2.5L",
+            "days_left": 5
+        }
+    ]

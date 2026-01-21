@@ -54,7 +54,7 @@ const AddPlant = () => {
     formData.append("file", qrFile);
     try {
       // Бэкенд проверит, есть ли QR в базе
-      const response = await axios.post("https://https://reforest-app.onrender.comonrender.com/verify-qr", formData);
+      const response = await axios.post("https://reforest-app.onrender.com/verify-qr", formData);
       setQrData(response.data); // Сохраняем тип дерева и ID
       setStep(2); // ПЕРЕХОДИМ К ФОТО
     } catch (err) {

@@ -47,7 +47,7 @@ const Forest = () => {
   useEffect(() => {
     const fetchTrees = async () => {
       try {
-        const res = await axios.get("https://deforest-api.onrender.com/forest");
+        const res = await axios.get("https://https://reforest-app.onrender.comonrender.com/forest");
         setTrees(res.data);
         setSelectedTree(prev => prev ? res.data.find(t => t.id === prev.id) || prev : null);
       } catch (err) { console.error(err); }

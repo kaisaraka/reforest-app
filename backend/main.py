@@ -69,3 +69,26 @@ def login(user_data: UserAuth, db: Session = Depends(get_db)):
 
 # --- СЮДА МОЖНО ВЕРНУТЬ ТВОИ ОСТАЛЬНЫЕ ФУНКЦИИ ---
 # (verify-qr, get_forest, и т.д., если они у тебя были ниже)
+class QRRequest(BaseModel):
+    qr_data: str
+    user_id: int
+
+@app.post("/verify-qr")
+def verify_qr(request: QRRequest, db: Session = Depends(get_db)):
+    # 1. Проверяем, что в QR коде написано именно то, что мы ждем
+    # Например, мы ждем текст "TREE_2026"
+    VALID_CODE = "TREE_2026" 
+    
+    if request.qr_data != VALID_CODE:
+        raise HTTPException(status_code=400, detail="QR Code Invalid")
+
+    # 2. Если код верный, ищем юзера и добавляем ему очки (например +1 Lf)
+    user = db.query(User).filter(User.id == request.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.score += 1
+    db.commit()
+    db.refresh(user)
+
+    return {"status": "success", "new_score": user.score, "message": "Tree planted!"}

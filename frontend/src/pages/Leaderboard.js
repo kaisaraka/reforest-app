@@ -6,7 +6,7 @@ const Leaderboard = () => {
   const [users, setUsers] = useState([]);
   
   useEffect(() => {
-    // ИСПРАВЛЕНА ССЫЛКА
+    // --- ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ССЫЛКА ---
     axios.get("https://reforest-app.onrender.com/leaderboard")
          .then(res => setUsers(res.data))
          .catch(err => console.error(err));

@@ -44,7 +44,7 @@ const Forest = () => {
   useEffect(() => {
     const fetchTrees = async () => {
       try {
-        // ИСПРАВЛЕНА ССЫЛКА
+        // --- ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ССЫЛКА ---
         const res = await axios.get("https://reforest-app.onrender.com/forest");
         setTrees(res.data);
         setSelectedTree(prev => prev ? res.data.find(t => t.id === prev.id) || prev : null);

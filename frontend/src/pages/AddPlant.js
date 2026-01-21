@@ -52,8 +52,7 @@ const AddPlant = () => {
     setLoading(true); setError(null);
 
     try {
-      // ОТПРАВЛЯЕМ "ELM-001", ТАК КАК ОН ЕСТЬ В SEED-QR
-      // (В реальном приложении здесь был бы результат расшифровки картинки)
+      // ИСПОЛЬЗУЕМ ELM-001, ТАК КАК ОН ТОЧНО ЕСТЬ В БАЗЕ ПОСЛЕ SEED-QR
       const response = await axios.post(`${API_BASE_URL}/verify-qr`, {
         qr_data: "ELM-001", 
         user_id: user.id
@@ -63,13 +62,14 @@ const AddPlant = () => {
       setStep(2);
     } catch (err) {
       console.error(err);
-      // БЕЗОПАСНАЯ ОБРАБОТКА ОШИБКИ
+      
+      // ЗАЩИТА ОТ ОШИБКИ REACT #31
       let msg = "QR Code Invalid";
       if (err.response && err.response.data) {
         if (typeof err.response.data.detail === 'string') {
             msg = err.response.data.detail;
         } else if (Array.isArray(err.response.data.detail)) {
-            // Если FastAPI вернул массив ошибок (422)
+            // Если ошибка пришла в виде массива (это и ломало сайт)
             msg = "Ошибка данных: " + err.response.data.detail[0].msg;
         }
       }

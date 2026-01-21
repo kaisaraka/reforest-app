@@ -218,3 +218,21 @@ async def predict_tree(
         "coords": [lat, lon],
         "tree_id": new_tree.id
     }
+# --- ЭНДПОИНТ: ПОЛНАЯ ОЧИСТКА БАЗЫ ---
+@app.post("/reset-db")
+def reset_database(db: Session = Depends(get_db)):
+    try:
+        # 1. Сначала удаляем деревья (так как они зависят от юзеров и QR)
+        db.query(Tree).delete()
+        
+        # 2. Удаляем пользователей
+        db.query(User).delete()
+        
+        # 3. Удаляем QR-коды (чтобы было совсем чисто)
+        db.query(QRCode).delete()
+        
+        db.commit()
+        return {"status": "success", "message": "Database completely cleared. Don't forget to run /seed-qr!"}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}

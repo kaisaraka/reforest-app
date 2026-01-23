@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
-import { QrCode, Camera, CheckCircle, XCircle } from 'lucide-react';
+import { QrCode, Camera, CheckCircle, XCircle, Sprout, ScanLine } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -11,7 +11,8 @@ const treeIcon = new L.Icon({
 });
 
 const AddPlant = () => {
-  const [step, setStep] = useState(1);
+  // 0 = Выбор режима, 1 = QR, 2 = Фото
+  const [step, setStep] = useState(0); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -34,7 +35,7 @@ const AddPlant = () => {
     setQrData(null); setFinalResult(null);
     setQrFile(null); setQrPreview(null);
     setPlantFile(null); setPlantPreview(null);
-    setStep(1);
+    setStep(0); // Возвращаемся к выбору режима
   };
 
   const handleFileSelect = (e, type) => {
@@ -46,13 +47,22 @@ const AddPlant = () => {
     else { setPlantFile(file); setPlantPreview(previewUrl); }
   };
 
+  // --- ЛОГИКА: БЕЗ QR ---
+  const handleSkipQr = () => {
+    // Создаем "фиктивные" данные QR, чтобы логика шага 2 не сломалась
+    setQrData({ 
+        tree_type: "Wild Tree", // Тип по умолчанию
+        id: null 
+    });
+    setStep(2); // Сразу прыгаем к фото
+  };
+
   // --- ШАГ 1: ПРОВЕРКА QR ---
   const handleVerifyQr = async () => {
     if (!qrFile || !user) return;
     setLoading(true); setError(null);
 
     try {
-      // ИСПОЛЬЗУЕМ ELM-001, ТАК КАК ОН ТОЧНО ЕСТЬ В БАЗЕ ПОСЛЕ SEED-QR
       const response = await axios.post(`${API_BASE_URL}/verify-qr`, {
         qr_data: "ELM-001", 
         user_id: user.id
@@ -62,14 +72,11 @@ const AddPlant = () => {
       setStep(2);
     } catch (err) {
       console.error(err);
-      
-      // ЗАЩИТА ОТ ОШИБКИ REACT #31
       let msg = "QR Code Invalid";
       if (err.response && err.response.data) {
         if (typeof err.response.data.detail === 'string') {
             msg = err.response.data.detail;
         } else if (Array.isArray(err.response.data.detail)) {
-            // Если ошибка пришла в виде массива (это и ломало сайт)
             msg = "Ошибка данных: " + err.response.data.detail[0].msg;
         }
       }
@@ -89,7 +96,6 @@ const AddPlant = () => {
     formData.append("username", user.username);
 
     try {
-      // ИСПРАВЛЕНА ССЫЛКА (Убрано лишнее https и onrender)
       const response = await axios.post(`${API_BASE_URL}/predict`, formData);
       
       if (response.data.success) {
@@ -104,6 +110,7 @@ const AddPlant = () => {
     }
   };
 
+  // --- СТИЛИ ---
   const uploadBoxStyle = { 
     background: "#EFEEEE", borderRadius: "20px", height: "180px", 
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", 
@@ -120,14 +127,53 @@ const AddPlant = () => {
     transition: "all 0.3s ease"
   });
 
+  const modeCardStyle = {
+    background: "#EFEEEE", padding: "20px", borderRadius: "20px",
+    marginBottom: "15px", cursor: "pointer", display: "flex", alignItems: "center", gap: "15px",
+    boxShadow: "6px 6px 12px #bebebe, -6px -6px 12px #ffffff", transition: "transform 0.1s"
+  };
+
   return (
     <div style={{ padding: "20px 24px 120px 24px", display: "flex", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: "450px", textAlign: "center" }}>
         
-        <h2 style={{ color: "#333", fontSize: "20px", fontWeight: "900", marginBottom: "10px" }}>
-          {step === 1 ? "STEP 1: SCAN QR" : "STEP 2: TAKE PHOTO"}
+        {/* ЗАГОЛОВОК ЗАВИСИТ ОТ ШАГА */}
+        <h2 style={{ color: "#333", fontSize: "20px", fontWeight: "900", marginBottom: "20px" }}>
+          {step === 0 && "CHOOSE MODE"}
+          {step === 1 && "STEP 1: SCAN QR"}
+          {step === 2 && "STEP 2: TAKE PHOTO"}
         </h2>
 
+        {/* --- ШАГ 0: ВЫБОР РЕЖИМА --- */}
+        {step === 0 && (
+          <div style={{ animation: "fadeIn 0.5s" }}>
+            
+            {/* Карточка: С QR кодом */}
+            <div style={modeCardStyle} onClick={() => setStep(1)}>
+              <div style={{ background: "#6A996F", padding: "12px", borderRadius: "12px", color: "white" }}>
+                <ScanLine size={24} />
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontWeight: "800", color: "#333" }}>I have a QR Tag</div>
+                <div style={{ fontSize: "12px", color: "#666" }}>Scan code to identify tree</div>
+              </div>
+            </div>
+
+            {/* Карточка: Без QR кода */}
+            <div style={modeCardStyle} onClick={handleSkipQr}>
+              <div style={{ background: "#D4C183", padding: "12px", borderRadius: "12px", color: "white" }}>
+                <Sprout size={24} />
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontWeight: "800", color: "#333" }}>Plant without QR</div>
+                <div style={{ fontSize: "12px", color: "#666" }}>Just take a photo & plant</div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* --- ШАГ 1: ЗАГРУЗКА QR --- */}
         {step === 1 && (
           <div style={{animation: "fadeIn 0.5s"}}>
              <p style={{color: "#666", fontSize: "14px", marginBottom: "20px"}}>Scan the tag to identify the tree.</p>
@@ -138,16 +184,23 @@ const AddPlant = () => {
                 }
                 <input type="file" ref={fileInputRef} onChange={(e) => handleFileSelect(e, 'qr')} accept="image/*" style={{display:"none"}}/>
              </div>
-             <button onClick={handleVerifyQr} disabled={!qrFile || loading} style={buttonStyle(qrFile && !loading)}>
-               {loading ? "Verifying..." : "Next"}
-             </button>
+             
+             <div style={{display: "flex", gap: "10px"}}>
+               <button onClick={() => setStep(0)} style={{...buttonStyle(false), background: "#EFEEEE", color: "#666", boxShadow: "none", border: "2px solid #ddd"}}>
+                 Back
+               </button>
+               <button onClick={handleVerifyQr} disabled={!qrFile || loading} style={buttonStyle(qrFile && !loading)}>
+                 {loading ? "Verifying..." : "Next"}
+               </button>
+             </div>
           </div>
         )}
 
+        {/* --- ШАГ 2: ФОТО ДЕРЕВА --- */}
         {step === 2 && !finalResult && (
           <div style={{animation: "fadeIn 0.5s"}}>
              <p style={{color: "#666", fontSize: "14px", marginBottom: "20px"}}>
-               Identity Verified: <b>{qrData?.tree_type}</b>. <br/> Take a photo of the tree.
+               Tree Type: <b>{qrData?.tree_type}</b>. <br/> Take a photo of the tree.
              </p>
              <div style={uploadBoxStyle} onClick={() => fileInputRef.current.click()}>
                 {plantPreview ? 
@@ -156,12 +209,19 @@ const AddPlant = () => {
                 }
                 <input type="file" ref={fileInputRef} onChange={(e) => handleFileSelect(e, 'plant')} accept="image/*" style={{display:"none"}}/>
              </div>
-             <button onClick={handleSubmitPlant} disabled={!plantFile || loading} style={buttonStyle(plantFile && !loading)}>
-               {loading ? "Analyzing Tree..." : "Confirm & Plant"}
-             </button>
+
+             <div style={{display: "flex", gap: "10px"}}>
+               <button onClick={() => setStep(0)} style={{...buttonStyle(false), background: "#EFEEEE", color: "#666", boxShadow: "none", border: "2px solid #ddd"}}>
+                 Cancel
+               </button>
+               <button onClick={handleSubmitPlant} disabled={!plantFile || loading} style={buttonStyle(plantFile && !loading)}>
+                 {loading ? "Analyzing..." : "Confirm & Plant"}
+               </button>
+             </div>
           </div>
         )}
 
+        {/* --- РЕЗУЛЬТАТ --- */}
         {finalResult && (
            <div style={{padding: "25px", background: "#fff", borderRadius: "24px", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", animation: "slideUp 0.5s"}}>
              <CheckCircle color="#6A996F" size={48} style={{marginBottom: "15px"}} />

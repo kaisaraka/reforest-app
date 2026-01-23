@@ -49,12 +49,11 @@ const AddPlant = () => {
 
   // --- ЛОГИКА: БЕЗ QR ---
   const handleSkipQr = () => {
-    // Создаем "фиктивные" данные QR, чтобы логика шага 2 не сломалась
     setQrData({ 
-        tree_type: "Wild Tree", // Тип по умолчанию
+        tree_type: "Wild Tree", 
         id: null 
     });
-    setStep(2); // Сразу прыгаем к фото
+    setStep(2);
   };
 
   // --- ШАГ 1: ПРОВЕРКА QR ---
@@ -110,63 +109,67 @@ const AddPlant = () => {
     }
   };
 
-  // --- СТИЛИ ---
+  // --- СТИЛИ (ОБНОВЛЕННЫЕ ТЕНИ) ---
+  
+  // Стиль для зоны загрузки (вдавленная тень)
   const uploadBoxStyle = { 
     background: "#EFEEEE", borderRadius: "20px", height: "180px", 
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", 
-    marginBottom: "20px", cursor: "pointer", border: "3px solid #E0E0E0",
-    boxShadow: "inset 6px 6px 12px #bebebe, inset -6px -6px 12px #ffffff"
+    marginBottom: "20px", cursor: "pointer", border: "2px solid #E5E7EB", // Светлая граница
+    // Тень стала светлее (#d1d9e6 вместо #bebebe) и меньше (4px вместо 6px)
+    boxShadow: "inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff"
   };
   
+  // Стиль для основных кнопок действий
   const buttonStyle = (isActive) => ({ 
     width: "100%", padding: "16px", borderRadius: "30px", 
     background: isActive ? "#6A996F" : "#D1D1D1", border: "none", 
     color: "white", fontWeight: "800", fontSize: "14px",
     cursor: isActive ? "pointer" : "default",
-    boxShadow: isActive ? "0 8px 15px rgba(106, 153, 111, 0.3)" : "none",
+    boxShadow: isActive ? "0 4px 10px rgba(106, 153, 111, 0.3)" : "none",
     transition: "all 0.3s ease"
   });
 
+  // Стиль для карточек выбора режима (выпуклая тень)
   const modeCardStyle = {
     background: "#EFEEEE", padding: "20px", borderRadius: "20px",
     marginBottom: "15px", cursor: "pointer", display: "flex", alignItems: "center", gap: "15px",
-    boxShadow: "6px 6px 12px #bebebe, -6px -6px 12px #ffffff", transition: "transform 0.1s"
+    // Тень стала светлее и аккуратнее
+    boxShadow: "5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff", 
+    transition: "transform 0.1s"
   };
 
   return (
     <div style={{ padding: "20px 24px 120px 24px", display: "flex", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: "450px", textAlign: "center" }}>
         
-        {/* ЗАГОЛОВОК ЗАВИСИТ ОТ ШАГА */}
-        <h2 style={{ color: "#333", fontSize: "20px", fontWeight: "900", marginBottom: "20px" }}>
-          {step === 0 && "CHOOSE MODE"}
-          {step === 1 && "SCAN QR"}
-          {step === 2 && "TAKE PHOTO"}
+        <h2 style={{ color: "#333", fontSize: "18px", fontWeight: "800", marginBottom: "25px", textTransform: "uppercase", letterSpacing: "1px" }}>
+          {step === 0 && "Choose Mode"}
+          {step === 1 && "Scan QR"}
+          {step === 2 && "Take Photo"}
         </h2>
 
         {/* --- ШАГ 0: ВЫБОР РЕЖИМА --- */}
         {step === 0 && (
           <div style={{ animation: "fadeIn 0.5s" }}>
             
-            {/* Карточка: С QR кодом */}
             <div style={modeCardStyle} onClick={() => setStep(1)}>
               <div style={{ background: "#6A996F", padding: "12px", borderRadius: "12px", color: "white" }}>
                 <ScanLine size={24} />
               </div>
               <div style={{ textAlign: "left" }}>
-                <div style={{ fontWeight: "800", color: "#333" }}>I have a QR Tag</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>Scan code to identify tree</div>
+                <div style={{ fontWeight: "800", color: "#333", fontSize: "15px" }}>I have a QR Tag</div>
+                <div style={{ fontSize: "12px", color: "#888", fontWeight: "500" }}>Scan code to identify tree</div>
               </div>
             </div>
 
-            {/* Карточка: Без QR кода */}
             <div style={modeCardStyle} onClick={handleSkipQr}>
               <div style={{ background: "#D4C183", padding: "12px", borderRadius: "12px", color: "white" }}>
                 <Sprout size={24} />
               </div>
               <div style={{ textAlign: "left" }}>
-                <div style={{ fontWeight: "800", color: "#333" }}>Plant without QR</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>Just take a photo & plant</div>
+                <div style={{ fontWeight: "800", color: "#333", fontSize: "15px" }}>Plant without QR</div>
+                <div style={{ fontSize: "12px", color: "#888", fontWeight: "500" }}>Just take a photo & plant</div>
               </div>
             </div>
 
@@ -176,17 +179,17 @@ const AddPlant = () => {
         {/* --- ШАГ 1: ЗАГРУЗКА QR --- */}
         {step === 1 && (
           <div style={{animation: "fadeIn 0.5s"}}>
-             <p style={{color: "#666", fontSize: "14px", marginBottom: "20px"}}>Scan the tag to identify the tree.</p>
+             <p style={{color: "#666", fontSize: "13px", marginBottom: "20px", fontWeight: "500"}}>Scan the tag to identify the tree.</p>
              <div style={uploadBoxStyle} onClick={() => fileInputRef.current.click()}>
                 {qrPreview ? 
                   <img src={qrPreview} alt="QR" style={{width:"100%", height:"100%", objectFit:"contain", borderRadius: "15px"}}/> : 
-                  <div style={{color: "#888", fontWeight: "700"}}><QrCode size={40} style={{marginBottom: "10px"}}/> <br/> Upload QR Image</div>
+                  <div style={{color: "#999", fontWeight: "600"}}><QrCode size={32} style={{marginBottom: "8px"}}/> <br/> Upload QR Image</div>
                 }
                 <input type="file" ref={fileInputRef} onChange={(e) => handleFileSelect(e, 'qr')} accept="image/*" style={{display:"none"}}/>
              </div>
              
              <div style={{display: "flex", gap: "10px"}}>
-               <button onClick={() => setStep(0)} style={{...buttonStyle(false), background: "#EFEEEE", color: "#666", boxShadow: "none", border: "2px solid #ddd"}}>
+               <button onClick={() => setStep(0)} style={{...buttonStyle(false), background: "#EFEEEE", color: "#888", boxShadow: "none", border: "1px solid #ddd"}}>
                  Back
                </button>
                <button onClick={handleVerifyQr} disabled={!qrFile || loading} style={buttonStyle(qrFile && !loading)}>
@@ -199,19 +202,19 @@ const AddPlant = () => {
         {/* --- ШАГ 2: ФОТО ДЕРЕВА --- */}
         {step === 2 && !finalResult && (
           <div style={{animation: "fadeIn 0.5s"}}>
-             <p style={{color: "#666", fontSize: "14px", marginBottom: "20px"}}>
+             <p style={{color: "#666", fontSize: "13px", marginBottom: "20px", fontWeight: "500"}}>
                Tree Type: <b>{qrData?.tree_type}</b>. <br/> Take a photo of the tree.
              </p>
              <div style={uploadBoxStyle} onClick={() => fileInputRef.current.click()}>
                 {plantPreview ? 
                   <img src={plantPreview} alt="Tree" style={{width:"100%", height:"100%", objectFit:"cover", borderRadius: "15px"}}/> : 
-                  <div style={{color: "#888", fontWeight: "700"}}><Camera size={40} style={{marginBottom: "10px"}}/> <br/> Take Photo</div>
+                  <div style={{color: "#999", fontWeight: "600"}}><Camera size={32} style={{marginBottom: "8px"}}/> <br/> Take Photo</div>
                 }
                 <input type="file" ref={fileInputRef} onChange={(e) => handleFileSelect(e, 'plant')} accept="image/*" style={{display:"none"}}/>
              </div>
 
              <div style={{display: "flex", gap: "10px"}}>
-               <button onClick={() => setStep(0)} style={{...buttonStyle(false), background: "#EFEEEE", color: "#666", boxShadow: "none", border: "2px solid #ddd"}}>
+               <button onClick={() => setStep(0)} style={{...buttonStyle(false), background: "#EFEEEE", color: "#888", boxShadow: "none", border: "1px solid #ddd"}}>
                  Cancel
                </button>
                <button onClick={handleSubmitPlant} disabled={!plantFile || loading} style={buttonStyle(plantFile && !loading)}>
@@ -223,13 +226,13 @@ const AddPlant = () => {
 
         {/* --- РЕЗУЛЬТАТ --- */}
         {finalResult && (
-           <div style={{padding: "25px", background: "#fff", borderRadius: "24px", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", animation: "slideUp 0.5s"}}>
+           <div style={{padding: "25px", background: "#fff", borderRadius: "24px", boxShadow: "0 15px 30px rgba(0,0,0,0.08)", animation: "slideUp 0.5s"}}>
              <CheckCircle color="#6A996F" size={48} style={{marginBottom: "15px"}} />
-             <h3 style={{color: "#333", margin: "0 0 10px 0", fontSize: "22px", fontWeight: "900"}}>Perfectly Planted!</h3>
-             <p style={{fontSize: "14px", color: "#666", marginBottom: "20px"}}>{finalResult.message}</p>
+             <h3 style={{color: "#333", margin: "0 0 10px 0", fontSize: "20px", fontWeight: "900"}}>Perfectly Planted!</h3>
+             <p style={{fontSize: "13px", color: "#666", marginBottom: "20px"}}>{finalResult.message}</p>
              
              {finalResult.coords && (
-                <div style={{ height: "200px", borderRadius: "20px", overflow: "hidden", border: "5px solid #EFEEEE" }}>
+                <div style={{ height: "200px", borderRadius: "20px", overflow: "hidden", border: "4px solid #EFEEEE" }}>
                     <MapContainer center={finalResult.coords} zoom={15} style={{ height: "100%" }} zoomControl={false}>
                         <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
                         <Marker position={finalResult.coords} icon={treeIcon}></Marker>

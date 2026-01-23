@@ -140,8 +140,8 @@ const AddPlant = () => {
         {/* ЗАГОЛОВОК ЗАВИСИТ ОТ ШАГА */}
         <h2 style={{ color: "#333", fontSize: "20px", fontWeight: "900", marginBottom: "20px" }}>
           {step === 0 && "CHOOSE MODE"}
-          {step === 1 && "STEP 1: SCAN QR"}
-          {step === 2 && "STEP 2: TAKE PHOTO"}
+          {step === 1 && "SCAN QR"}
+          {step === 2 && "TAKE PHOTO"}
         </h2>
 
         {/* --- ШАГ 0: ВЫБОР РЕЖИМА --- */}

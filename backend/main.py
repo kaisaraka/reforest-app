@@ -179,11 +179,23 @@ def get_forest(db: Session = Depends(get_db)):
 def get_leaderboard(db: Session = Depends(get_db)):
     return db.query(User).order_by(User.score.desc()).limit(10).all()
 
+# 🔥 ИСПРАВЛЕННЫЙ ЭНДПОИНТ ИСТОРИИ
 @app.post("/user/history", response_model=List[ActivityLogItem])
 def get_user_history(user_id: int = Form(...), db: Session = Depends(get_db)):
-    # Возвращаем последние 50 действий
+    # 1. Получаем записи из базы
     logs = db.query(ActivityLog).filter(ActivityLog.user_id == user_id).order_by(ActivityLog.timestamp.desc()).limit(50).all()
-    return logs
+    
+    # 2. Превращаем их в обычные словари (чтобы точно дошли до фронта)
+    result = []
+    for log in logs:
+        result.append({
+            "action": log.action,
+            "points": log.points,
+            "details": log.details,
+            "timestamp": log.timestamp
+        })
+    
+    return result
 
 @app.post("/user/refresh")
 def refresh_user_data(user_id: int = Form(...), db: Session = Depends(get_db)):

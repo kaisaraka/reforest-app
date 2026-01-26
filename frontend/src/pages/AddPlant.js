@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { QrCode, Camera, CheckCircle, XCircle, Sprout, ScanLine, MapPin, RefreshCw, ChevronDown } from 'lucide-react';
+import { QrCode, Camera, CheckCircle, XCircle, Sprout, ScanLine, MapPin, RefreshCw, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -10,7 +10,7 @@ const treeIcon = new L.Icon({
   iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -32]
 });
 
-// Список деревьев для выбора
+// Список деревьев
 const TREE_OPTIONS = [
     "Oak (Дуб)",
     "Pine (Сосна)",
@@ -33,10 +33,11 @@ const AddPlant = () => {
 
   const [qrFile, setQrFile] = useState(null);
   const [qrPreview, setQrPreview] = useState(null);
-  const [qrData, setQrData] = useState(null); // Данные из QR
+  const [qrData, setQrData] = useState(null); 
 
-  // Если без QR - пользователь выбирает тип сам
+  // Состояние для выбора дерева и открытия меню
   const [selectedTreeType, setSelectedTreeType] = useState(TREE_OPTIONS[0]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const [plantFile, setPlantFile] = useState(null);
   const [plantPreview, setPlantPreview] = useState(null);
@@ -53,7 +54,7 @@ const AddPlant = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setDeviceCoords({ lat: position.coords.latitude, lon: position.coords.longitude });
-        setLocationStatus("GPS Location Found");
+        setLocationStatus("GPS Location Found! ✅");
         setGpsError(false);
       },
       (err) => {
@@ -76,6 +77,7 @@ const AddPlant = () => {
     setPlantFile(null); setPlantPreview(null);
     setDeviceCoords(null);
     setStep(0);
+    setIsDropdownOpen(false);
   };
 
   const handleFileSelect = (e, type) => {
@@ -88,8 +90,8 @@ const AddPlant = () => {
   };
 
   const handleSkipQr = () => {
-    setQrData(null); // QR нет
-    setSelectedTreeType(TREE_OPTIONS[0]); // Сброс выбора на первый элемент
+    setQrData(null);
+    setSelectedTreeType(TREE_OPTIONS[0]);
     setStep(2);
   };
 
@@ -111,7 +113,6 @@ const AddPlant = () => {
     formData.append("file", plantFile);
     formData.append("username", user.username);
     
-    // Определяем имя дерева
     if (qrData) {
         formData.append("tree_type", qrData.tree_type);
         formData.append("qr_code_id", qrData.qr_code);
@@ -175,29 +176,57 @@ const AddPlant = () => {
         {step === 2 && !finalResult && (
           <div style={{animation: "fadeIn 0.5s"}}>
              
-             {/* ВЫБОР ДЕРЕВА (ЕСЛИ БЕЗ QR) */}
+             {/* --- КРАСИВЫЙ ВЫБОР ДЕРЕВА --- */}
              {!qrData ? (
-                 <div style={{ marginBottom: "20px", textAlign: "left" }}>
-                     <label style={{ fontSize: "12px", fontWeight: "bold", color: "#555", marginLeft: "10px" }}>Select Tree Type:</label>
-                     <div style={{ position: "relative", marginTop: "5px" }}>
-                         <select 
-                            value={selectedTreeType}
-                            onChange={(e) => setSelectedTreeType(e.target.value)}
-                            style={{ 
-                                width: "100%", padding: "12px 15px", borderRadius: "15px", 
-                                border: "1px solid #ddd", background: "white", appearance: "none",
-                                fontSize: "14px", fontWeight: "600", color: "#333",
-                                boxShadow: "0 2px 5px rgba(0,0,0,0.05)"
-                            }}
-                         >
-                             {TREE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                         </select>
-                         <ChevronDown size={16} style={{ position: "absolute", right: "15px", top: "14px", color: "#888", pointerEvents: "none" }}/>
-                     </div>
-                 </div>
+                <div style={{ marginBottom: "20px", textAlign: "left", position: "relative" }}>
+                    <label style={{ fontSize: "12px", fontWeight: "bold", color: "#888", marginLeft: "5px", marginBottom: "8px", display: "block" }}>Select Tree Type</label>
+                    
+                    {/* Кнопка-Триггер */}
+                    <div 
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        style={{
+                            background: "#fff", padding: "14px 18px", borderRadius: "16px",
+                            border: isDropdownOpen ? "2px solid #6A996F" : "1px solid #E5E7EB",
+                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                            cursor: "pointer", boxShadow: "0 4px 10px rgba(0,0,0,0.03)",
+                            transition: "all 0.2s ease"
+                        }}
+                    >
+                        <span style={{ fontWeight: "700", color: "#333", fontSize: "15px" }}>{selectedTreeType}</span>
+                        {isDropdownOpen ? <ChevronUp size={20} color="#6A996F"/> : <ChevronDown size={20} color="#888"/>}
+                    </div>
+
+                    {/* Выпадающее меню */}
+                    {isDropdownOpen && (
+                        <div style={{
+                            position: "absolute", top: "100%", left: 0, right: 0, marginTop: "8px",
+                            background: "#fff", borderRadius: "16px", padding: "8px",
+                            boxShadow: "0 10px 40px rgba(0,0,0,0.15)", zIndex: 100,
+                            border: "1px solid #f0f0f0", maxHeight: "250px", overflowY: "auto"
+                        }}>
+                            {TREE_OPTIONS.map((opt) => (
+                                <div 
+                                    key={opt}
+                                    onClick={() => { setSelectedTreeType(opt); setIsDropdownOpen(false); }}
+                                    style={{
+                                        padding: "12px 16px", borderRadius: "10px", marginBottom: "4px",
+                                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
+                                        background: selectedTreeType === opt ? "#F0FDF4" : "transparent",
+                                        color: selectedTreeType === opt ? "#166534" : "#444",
+                                        fontWeight: selectedTreeType === opt ? "700" : "500",
+                                        transition: "background 0.2s"
+                                    }}
+                                >
+                                    {opt}
+                                    {selectedTreeType === opt && <Check size={16} color="#166534"/>}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
              ) : (
-                <div style={{ marginBottom: "20px", padding: "10px", background: "#E8F5E9", borderRadius: "12px", color: "#166534", fontWeight: "700", fontSize: "14px" }}>
-                    Verified: {qrData.tree_type}
+                <div style={{ marginBottom: "20px", padding: "12px 16px", background: "#E8F5E9", borderRadius: "15px", color: "#166534", fontWeight: "700", fontSize: "14px", display: "flex", alignItems: "center", gap: "10px", border: "1px solid #BBF7D0" }}>
+                    <CheckCircle size={18}/> Verified Type: {qrData.tree_type}
                 </div>
              )}
 

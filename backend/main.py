@@ -105,6 +105,12 @@ def login(user_data: UserAuth, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid username or password")
     return {"id": user.id, "username": user.username, "score": user.score}
 
+@app.post("/user/refresh")
+def refresh_user_data(user_id: int = Form(...), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user: raise HTTPException(status_code=404, detail="User not found")
+    return {"id": user.id, "username": user.username, "score": user.score}
+
 @app.post("/verify-qr")
 def verify_qr(request: QRVerifyRequest, db: Session = Depends(get_db)):
     if request.qr_data == "CHECK_USER_ALIVE":
@@ -123,7 +129,7 @@ def seed_qr(db: Session = Depends(get_db)):
     db.commit()
     return {"status": "success"}
 
-# --- СХЕМЫ ОТВЕТОВ ---
+# --- SCHEMAS ---
 class WateringHistoryItem(BaseModel):
     username: str
     timestamp: datetime
@@ -147,7 +153,7 @@ class ActivityLogItem(BaseModel):
     details: str
     timestamp: datetime
 
-# --- ЛОГИКА ---
+# --- LOGIC ---
 
 @app.get("/forest", response_model=List[TreeResponse])
 def get_forest(db: Session = Depends(get_db)):
@@ -161,11 +167,15 @@ def get_forest(db: Session = Depends(get_db)):
                 "timestamp": event.timestamp,
                 "image_data": event.image_data
             })
+        
+        # 🔥 ТЕПЕРЬ БЕРЕМ ТИП ДЕРЕВА ИЗ ТАБЛИЦЫ TREE
+        t_type = t.tree_type if t.tree_type else "Wild Tree"
+        
         result.append({
             "id": t.id,
             "pos": [t.lat, t.lon],
             "status": "green",
-            "tree_type": t.qr_info.tree_type if t.qr_info else "Wild Tree",
+            "tree_type": t_type,
             "user": t.owner.username if t.owner else "Unknown",
             "water_amount": t.qr_info.water_amount if t.qr_info else "2L",
             "days_left": 5,
@@ -179,13 +189,9 @@ def get_forest(db: Session = Depends(get_db)):
 def get_leaderboard(db: Session = Depends(get_db)):
     return db.query(User).order_by(User.score.desc()).limit(10).all()
 
-# 🔥 ИСПРАВЛЕННЫЙ ЭНДПОИНТ ИСТОРИИ
 @app.post("/user/history", response_model=List[ActivityLogItem])
 def get_user_history(user_id: int = Form(...), db: Session = Depends(get_db)):
-    # 1. Получаем записи из базы
     logs = db.query(ActivityLog).filter(ActivityLog.user_id == user_id).order_by(ActivityLog.timestamp.desc()).limit(50).all()
-    
-    # 2. Превращаем их в обычные словари (чтобы точно дошли до фронта)
     result = []
     for log in logs:
         result.append({
@@ -194,19 +200,19 @@ def get_user_history(user_id: int = Form(...), db: Session = Depends(get_db)):
             "details": log.details,
             "timestamp": log.timestamp
         })
-    
     return result
 
-@app.post("/user/refresh")
-def refresh_user_data(user_id: int = Form(...), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    # Возвращаем актуальные данные
-    return {"id": user.id, "username": user.username, "score": user.score}
-
+# 🔥 ОБНОВЛЕННЫЙ PREDICT
 @app.post("/predict")
-async def predict_tree(file: UploadFile = File(...), username: str = Form(...), lat: Optional[float] = Form(None), lon: Optional[float] = Form(None), db: Session = Depends(get_db)):
+async def predict_tree(
+    file: UploadFile = File(...),
+    username: str = Form(...),
+    tree_type: str = Form("Wild Tree"), # Получаем имя дерева
+    lat: Optional[float] = Form(None),
+    lon: Optional[float] = Form(None),
+    qr_code_id: Optional[str] = Form(None), # Если есть QR
+    db: Session = Depends(get_db)
+):
     user = db.query(User).filter(User.username == username).first()
     if not user: return {"success": False, "message": "User not found"}
     image_bytes = await file.read()
@@ -221,20 +227,28 @@ async def predict_tree(file: UploadFile = File(...), username: str = Form(...), 
         except: pass
     if final_lat is None: final_lat, final_lon, gps_source = 42.8953 + random.uniform(-0.005, 0.005), 71.3737 + random.uniform(-0.005, 0.005), "Estimated"
 
-    new_tree = Tree(lat=final_lat, lon=final_lon, owner_id=user.id, qr_code_id="ELM-001", image_data=base64_img, created_at=datetime.utcnow(), last_watered_date=datetime.utcnow())
+    # Создаем дерево с конкретным именем и (возможно) QR кодом
+    new_tree = Tree(
+        lat=final_lat, 
+        lon=final_lon, 
+        owner_id=user.id, 
+        qr_code_id=qr_code_id, # Может быть None
+        tree_type=tree_type,   # Сохраняем имя!
+        image_data=base64_img, 
+        created_at=datetime.utcnow(), 
+        last_watered_date=datetime.utcnow()
+    )
     
-    # 🔥 НАЧИСЛЯЕМ 100 ОЧКОВ
     POINTS = 100
     user.score += POINTS
     
-    # 🔥 ЗАПИСЫВАЕМ В ЛОГ
-    log = ActivityLog(user_id=user.id, action="planted", points=POINTS, details=f"Planted Tree ({gps_source})")
+    log = ActivityLog(user_id=user.id, action="planted", points=POINTS, details=f"Planted {tree_type}")
     db.add(log)
     
     db.add(new_tree)
     db.commit()
     db.refresh(new_tree)
-    return {"success": True, "message": f"Tree planted! +{POINTS} Lf", "coords": [final_lat, final_lon], "tree_id": new_tree.id}
+    return {"success": True, "message": f"{tree_type} planted! +{POINTS} Lf", "coords": [final_lat, final_lon], "tree_id": new_tree.id}
 
 @app.post("/water")
 async def water_tree(tree_id: int = Form(...), username: str = Form(...), file: UploadFile = File(...), db: Session = Depends(get_db)):
@@ -249,13 +263,10 @@ async def water_tree(tree_id: int = Form(...), username: str = Form(...), file: 
 
     new_event = WateringEvent(tree_id=tree.id, user_id=user.id, image_data=base64_img, timestamp=datetime.utcnow())
     tree.last_watered_date = datetime.utcnow()
-    
-    # 🔥 НАЧИСЛЯЕМ 30 ОЧКОВ
     POINTS = 30
     user.score += POINTS
     
-    # 🔥 ЗАПИСЫВАЕМ В ЛОГ
-    tree_name = tree.qr_info.tree_type if tree.qr_info else "Wild Tree"
+    tree_name = tree.tree_type
     log = ActivityLog(user_id=user.id, action="watered", points=POINTS, details=f"Watered {tree_name}")
     db.add(log)
 

@@ -12,8 +12,6 @@ class User(Base):
     
     trees = relationship("Tree", back_populates="owner")
     waterings = relationship("WateringEvent", back_populates="user")
-    
-    # 🔥 НОВОЕ: История действий пользователя
     activities = relationship("ActivityLog", back_populates="user", cascade="all, delete-orphan")
 
 class QRCode(Base):
@@ -33,11 +31,14 @@ class Tree(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     last_watered_date = Column(DateTime, default=datetime.utcnow)
     image_data = Column(Text, nullable=True) 
+    
+    # 🔥 НОВОЕ ПОЛЕ: Храним тип дерева здесь
+    tree_type = Column(String, default="Unknown Tree")
 
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="trees")
     
-    qr_code_id = Column(String, ForeignKey("qr_codes.id"))
+    qr_code_id = Column(String, ForeignKey("qr_codes.id"), nullable=True) # Теперь может быть пустым
     qr_info = relationship("QRCode", back_populates="tree")
 
     history = relationship("WateringEvent", back_populates="tree", cascade="all, delete-orphan")
@@ -53,14 +54,13 @@ class WateringEvent(Base):
     tree = relationship("Tree", back_populates="history")
     user = relationship("User", back_populates="waterings")
 
-# 🔥 НОВАЯ ТАБЛИЦА: Лог действий (для профиля)
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    action = Column(String)  # "planted", "watered"
-    points = Column(Integer) # +100, +30
-    details = Column(String) # Например: "Oak Tree"
+    action = Column(String)
+    points = Column(Integer)
+    details = Column(String)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="activities")

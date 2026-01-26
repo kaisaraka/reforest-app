@@ -77,7 +77,7 @@ const Forest = () => {
 
     try {
         await axios.post("https://reforest-app.onrender.com/water", formData);
-        alert("Thanks for watering! +1 Lf 💧");
+        alert("Thanks for watering! +30Lf");
         fetchTrees(); // Обновляем данные сразу
     } catch (err) {
         alert("Error watering tree");

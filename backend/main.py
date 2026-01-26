@@ -129,16 +129,19 @@ def seed_qr(db: Session = Depends(get_db)):
     db.commit()
     return {"status": "success"}
 
+# Найди этот блок и замени его целиком:
+
 @app.post("/reset-db")
 def reset_database(db: Session = Depends(get_db)):
     try:
-        db.query(Tree).delete()
-        db.query(User).delete()
-        db.query(QRCode).delete()
-        db.commit()
-        return {"status": "success"}
+        # 🔥 ВАЖНО: Это удаляет сами ТАБЛИЦЫ, а не просто данные
+        models.Base.metadata.drop_all(bind=engine)
+        
+        # А это создает их заново, уже с новой колонкой image_data
+        models.Base.metadata.create_all(bind=engine)
+        
+        return {"status": "success", "message": "Tables dropped and recreated!"}
     except Exception as e:
-        db.rollback()
         return {"status": "error", "message": str(e)}
 
 # 🔥 ОБНОВЛЕННАЯ СХЕМА ОТВЕТА

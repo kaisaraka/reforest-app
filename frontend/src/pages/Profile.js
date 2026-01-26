@@ -1,91 +1,88 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, MapPin, User as UserIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { User, Sprout, Droplets, Calendar, Star } from 'lucide-react';
 
 const Profile = () => {
-  const navigate = useNavigate();
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
   const user = JSON.parse(localStorage.getItem("user"));
 
-  const handleLogout = () => {
-    // Удаляем юзера и идем на логин
-    localStorage.removeItem("user");
-    navigate("/login");
+  useEffect(() => {
+    if (user && user.id) {
+      const formData = new FormData();
+      formData.append("user_id", user.id);
+
+      axios.post("https://reforest-app.onrender.com/user/history", formData)
+        .then(res => {
+          setHistory(res.data);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoading(false);
+        });
+    }
+  }, []);
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("en-US", { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
   };
 
-  if (!user) return null;
+  if (!user) return <div style={{padding: "20px", textAlign:"center"}}>Please log in</div>;
 
   return (
-    <div style={{ padding: "0 24px", fontFamily: "'Inter', sans-serif" }}>
-      
-      <h2 style={{ 
-        color: "#4F5D52", fontSize: "20px", fontWeight: "bold", 
-        marginTop: "10px", marginBottom: "30px", textAlign: "center", textTransform: "uppercase" 
-      }}>
-        My Profile
-      </h2>
-
-      {/* КАРТОЧКА ПРОФИЛЯ (Выпуклая) */}
-      <div style={{ 
-        background: "#EFEEEE", borderRadius: "20px", padding: "30px 20px",
-        boxShadow: "8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff",
-        display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "30px"
-      }}>
-        
-        {/* Аватарка (Вдавленная) */}
-        <div style={{ 
-          width: "100px", height: "100px", borderRadius: "50%",
-          background: "#EFEEEE", display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "inset 6px 6px 12px #d1d9e6, inset -6px -6px 12px #ffffff",
-          marginBottom: "20px", color: "#6A996F"
-        }}>
-          <UserIcon size={50} strokeWidth={1.5} />
+    <div style={{ padding: "0 24px 100px 24px" }}>
+      {/* Шапка профиля */}
+      <div style={{ textAlign: "center", marginBottom: "30px", marginTop: "20px" }}>
+        <div style={{ width: "80px", height: "80px", borderRadius: "50%", background: "#E8F5E9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 15px auto", border: "3px solid #6A996F" }}>
+            <User size={40} color="#166534"/>
         </div>
-
-        <h3 style={{ margin: "0", fontSize: "24px", color: "#4F5D52", fontWeight: "800" }}>
-          {user.username}
-        </h3>
-        
-        <div style={{ 
-          display: "flex", alignItems: "center", gap: "5px", 
-          color: "#8898aa", fontSize: "14px", marginTop: "5px", fontWeight: "500" 
-        }}>
-          <MapPin size={14} /> Taraz, Kazakhstan
+        <h2 style={{ margin: "0", fontSize: "24px", fontWeight: "900", color: "#333" }}>{user.username}</h2>
+        <div style={{ marginTop: "10px", display: "inline-flex", alignItems: "center", gap: "8px", background: "#6A996F", color: "white", padding: "8px 16px", borderRadius: "20px", fontWeight: "bold", fontSize: "14px", boxShadow: "0 4px 10px rgba(106,153,111,0.4)" }}>
+            <Star size={16} fill="white"/> {user.score} Lf Points
         </div>
-
-        {/* Статистика */}
-        <div style={{ 
-          display: "flex", gap: "40px", marginTop: "30px", width: "100%", justifyContent: "center" 
-        }}>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "20px", fontWeight: "900", color: "#6A996F" }}>{user.score / 50}</div>
-            <div style={{ fontSize: "11px", color: "#8898aa", fontWeight: "bold", letterSpacing: "1px" }}>TREES</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "20px", fontWeight: "900", color: "#D4C183" }}>{user.score}</div>
-            <div style={{ fontSize: "11px", color: "#8898aa", fontWeight: "bold", letterSpacing: "1px" }}>LEAVES</div>
-          </div>
-        </div>
-
       </div>
 
-      {/* КНОПКА ВЫХОДА (Красная, мягкая) */}
-      <button 
-        onClick={handleLogout}
-        style={{
-          width: "100%", padding: "18px", borderRadius: "16px",
-          background: "#EFEEEE", color: "#e53e3e", border: "none",
-          fontWeight: "bold", fontSize: "16px", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
-          // Тень делает её кнопкой
-          boxShadow: "5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff",
-          transition: "0.2s"
-        }}
-        onMouseDown={(e) => e.currentTarget.style.boxShadow = "inset 3px 3px 6px #d1d9e6, inset -3px -3px 6px #ffffff"} // Эффект нажатия
-        onMouseUp={(e) => e.currentTarget.style.boxShadow = "5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff"}
-      >
-        <LogOut size={20} /> Switch Account
-      </button>
-
+      {/* История действий */}
+      <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#555", marginBottom: "15px" }}>Activity History</h3>
+      
+      {loading ? (
+        <div style={{textAlign: "center", color: "#888"}}>Loading history...</div>
+      ) : history.length === 0 ? (
+        <div style={{textAlign: "center", color: "#888", padding: "20px", background: "#f5f5f5", borderRadius: "15px"}}>No activity yet. Start planting! 🌱</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {history.map((item, index) => (
+                <div key={index} style={{ 
+                    background: "white", padding: "15px", borderRadius: "16px", 
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    boxShadow: "0 4px 15px rgba(0,0,0,0.05)", border: "1px solid #eee"
+                }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                        <div style={{ 
+                            width: "40px", height: "40px", borderRadius: "12px", 
+                            background: item.action === "planted" ? "#E8F5E9" : "#E0F2FE",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: item.action === "planted" ? "#166534" : "#0284c7"
+                        }}>
+                            {item.action === "planted" ? <Sprout size={20}/> : <Droplets size={20}/>}
+                        </div>
+                        <div>
+                            <div style={{ fontWeight: "700", color: "#333", fontSize: "14px" }}>
+                                {item.action === "planted" ? "Planted a Tree" : "Watered a Tree"}
+                            </div>
+                            <div style={{ fontSize: "11px", color: "#888", display: "flex", alignItems: "center", gap: "4px" }}>
+                                {item.details} • {formatDate(item.timestamp)}
+                            </div>
+                        </div>
+                    </div>
+                    <div style={{ fontWeight: "800", color: "#6A996F", fontSize: "14px" }}>
+                        +{item.points}
+                    </div>
+                </div>
+            ))}
+        </div>
+      )}
     </div>
   );
 };

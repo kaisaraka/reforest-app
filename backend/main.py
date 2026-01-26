@@ -11,7 +11,7 @@ import io
 from PIL import Image, ExifTags 
 
 import models
-from models import User, QRCode, Tree, WateringEvent
+from models import User, QRCode, Tree, WateringEvent, ActivityLog
 from database import engine, SessionLocal, get_db
 
 models.Base.metadata.create_all(bind=engine)
@@ -123,7 +123,7 @@ def seed_qr(db: Session = Depends(get_db)):
     db.commit()
     return {"status": "success"}
 
-# Схема для истории полива
+# --- СХЕМЫ ОТВЕТОВ ---
 class WateringHistoryItem(BaseModel):
     username: str
     timestamp: datetime
@@ -139,14 +139,21 @@ class TreeResponse(BaseModel):
     days_left: int
     created_at: datetime
     image_data: Optional[str] = None
-    history: List[WateringHistoryItem] = [] # 🔥 Список истории
+    history: List[WateringHistoryItem] = []
+
+class ActivityLogItem(BaseModel):
+    action: str
+    points: int
+    details: str
+    timestamp: datetime
+
+# --- ЛОГИКА ---
 
 @app.get("/forest", response_model=List[TreeResponse])
 def get_forest(db: Session = Depends(get_db)):
     trees = db.query(Tree).all()
     result = []
     for t in trees:
-        # Собираем историю
         history_list = []
         for event in t.history:
             history_list.append({
@@ -154,24 +161,30 @@ def get_forest(db: Session = Depends(get_db)):
                 "timestamp": event.timestamp,
                 "image_data": event.image_data
             })
-        
         result.append({
             "id": t.id,
             "pos": [t.lat, t.lon],
-            "status": "green", # Упрощено для примера
+            "status": "green",
             "tree_type": t.qr_info.tree_type if t.qr_info else "Wild Tree",
             "user": t.owner.username if t.owner else "Unknown",
             "water_amount": t.qr_info.water_amount if t.qr_info else "2L",
             "days_left": 5,
             "created_at": t.created_at,
             "image_data": t.image_data,
-            "history": history_list # Отдаем историю на фронт
+            "history": history_list
         })
     return result
 
 @app.get("/leaderboard")
 def get_leaderboard(db: Session = Depends(get_db)):
     return db.query(User).order_by(User.score.desc()).limit(10).all()
+
+# 🔥 ЭНДПОИНТ ДЛЯ ИСТОРИИ ЮЗЕРА
+@app.post("/user/history", response_model=List[ActivityLogItem])
+def get_user_history(user_id: int = Form(...), db: Session = Depends(get_db)):
+    # Возвращаем последние 50 действий
+    logs = db.query(ActivityLog).filter(ActivityLog.user_id == user_id).order_by(ActivityLog.timestamp.desc()).limit(50).all()
+    return logs
 
 @app.post("/predict")
 async def predict_tree(file: UploadFile = File(...), username: str = Form(...), lat: Optional[float] = Form(None), lon: Optional[float] = Form(None), db: Session = Depends(get_db)):
@@ -181,8 +194,7 @@ async def predict_tree(file: UploadFile = File(...), username: str = Form(...), 
     try: base64_img = compress_image_to_base64(Image.open(io.BytesIO(image_bytes)))
     except: base64_img = None
     
-    final_lat, final_lon = lat, lon
-    gps_source = "Device GPS"
+    final_lat, final_lon, gps_source = lat, lon, "Device GPS"
     if final_lat is None:
         try:
             photo_coords = get_image_gps(Image.open(io.BytesIO(image_bytes)))
@@ -191,44 +203,43 @@ async def predict_tree(file: UploadFile = File(...), username: str = Form(...), 
     if final_lat is None: final_lat, final_lon, gps_source = 42.8953 + random.uniform(-0.005, 0.005), 71.3737 + random.uniform(-0.005, 0.005), "Estimated"
 
     new_tree = Tree(lat=final_lat, lon=final_lon, owner_id=user.id, qr_code_id="ELM-001", image_data=base64_img, created_at=datetime.utcnow(), last_watered_date=datetime.utcnow())
-    user.score += 1
+    
+    # 🔥 НАЧИСЛЯЕМ 100 ОЧКОВ
+    POINTS = 100
+    user.score += POINTS
+    
+    # 🔥 ЗАПИСЫВАЕМ В ЛОГ
+    log = ActivityLog(user_id=user.id, action="planted", points=POINTS, details=f"Planted Tree ({gps_source})")
+    db.add(log)
+    
     db.add(new_tree)
     db.commit()
     db.refresh(new_tree)
-    return {"success": True, "message": f"Tree planted! ({gps_source})", "coords": [final_lat, final_lon], "tree_id": new_tree.id}
+    return {"success": True, "message": f"Tree planted! +{POINTS} Lf", "coords": [final_lat, final_lon], "tree_id": new_tree.id}
 
-# 🔥 НОВЫЙ ЭНДПОИНТ ДЛЯ ПОЛИВА
 @app.post("/water")
-async def water_tree(
-    tree_id: int = Form(...),
-    username: str = Form(...),
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db)
-):
+async def water_tree(tree_id: int = Form(...), username: str = Form(...), file: UploadFile = File(...), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
     if not user: raise HTTPException(status_code=404, detail="User not found")
-    
     tree = db.query(Tree).filter(Tree.id == tree_id).first()
     if not tree: raise HTTPException(status_code=404, detail="Tree not found")
 
-    # Сжимаем фото полива
     image_bytes = await file.read()
     try: base64_img = compress_image_to_base64(Image.open(io.BytesIO(image_bytes)))
     except: base64_img = None
 
-    # Создаем запись в истории
-    new_event = WateringEvent(
-        tree_id=tree.id,
-        user_id=user.id,
-        image_data=base64_img,
-        timestamp=datetime.utcnow()
-    )
-    
-    # Обновляем статус дерева
+    new_event = WateringEvent(tree_id=tree.id, user_id=user.id, image_data=base64_img, timestamp=datetime.utcnow())
     tree.last_watered_date = datetime.utcnow()
-    user.score += 1 # Даем очко за полив!
+    
+    # 🔥 НАЧИСЛЯЕМ 30 ОЧКОВ
+    POINTS = 30
+    user.score += POINTS
+    
+    # 🔥 ЗАПИСЫВАЕМ В ЛОГ
+    tree_name = tree.qr_info.tree_type if tree.qr_info else "Wild Tree"
+    log = ActivityLog(user_id=user.id, action="watered", points=POINTS, details=f"Watered {tree_name}")
+    db.add(log)
 
     db.add(new_event)
     db.commit()
-    
-    return {"success": True, "message": "Tree watered successfully!"}
+    return {"success": True, "message": f"Tree watered! +{POINTS} Lf"}

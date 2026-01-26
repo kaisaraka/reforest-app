@@ -9,8 +9,12 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String) 
     score = Column(Integer, default=0)
+    
     trees = relationship("Tree", back_populates="owner")
-    waterings = relationship("WateringEvent", back_populates="user") # Связь с поливами
+    waterings = relationship("WateringEvent", back_populates="user")
+    
+    # 🔥 НОВОЕ: История действий пользователя
+    activities = relationship("ActivityLog", back_populates="user", cascade="all, delete-orphan")
 
 class QRCode(Base):
     __tablename__ = "qr_codes"
@@ -36,7 +40,6 @@ class Tree(Base):
     qr_code_id = Column(String, ForeignKey("qr_codes.id"))
     qr_info = relationship("QRCode", back_populates="tree")
 
-    # 🔥 НОВОЕ: Связь с историей полива
     history = relationship("WateringEvent", back_populates="tree", cascade="all, delete-orphan")
 
 class WateringEvent(Base):
@@ -45,7 +48,19 @@ class WateringEvent(Base):
     tree_id = Column(Integer, ForeignKey("trees.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
     timestamp = Column(DateTime, default=datetime.utcnow)
-    image_data = Column(Text, nullable=True) # Фото доказательство
+    image_data = Column(Text, nullable=True)
 
     tree = relationship("Tree", back_populates="history")
     user = relationship("User", back_populates="waterings")
+
+# 🔥 НОВАЯ ТАБЛИЦА: Лог действий (для профиля)
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    action = Column(String)  # "planted", "watered"
+    points = Column(Integer) # +100, +30
+    details = Column(String) # Например: "Oak Tree"
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="activities")

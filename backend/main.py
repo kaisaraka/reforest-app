@@ -179,12 +179,19 @@ def get_forest(db: Session = Depends(get_db)):
 def get_leaderboard(db: Session = Depends(get_db)):
     return db.query(User).order_by(User.score.desc()).limit(10).all()
 
-# 🔥 ЭНДПОИНТ ДЛЯ ИСТОРИИ ЮЗЕРА
 @app.post("/user/history", response_model=List[ActivityLogItem])
 def get_user_history(user_id: int = Form(...), db: Session = Depends(get_db)):
     # Возвращаем последние 50 действий
     logs = db.query(ActivityLog).filter(ActivityLog.user_id == user_id).order_by(ActivityLog.timestamp.desc()).limit(50).all()
     return logs
+
+@app.post("/user/refresh")
+def refresh_user_data(user_id: int = Form(...), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Возвращаем актуальные данные
+    return {"id": user.id, "username": user.username, "score": user.score}
 
 @app.post("/predict")
 async def predict_tree(file: UploadFile = File(...), username: str = Form(...), lat: Optional[float] = Form(None), lon: Optional[float] = Form(None), db: Session = Depends(get_db)):

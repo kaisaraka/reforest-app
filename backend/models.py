@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -7,12 +7,10 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
-    # НОВОЕ ПОЛЕ: Храним не пароль, а его хеш!
     hashed_password = Column(String) 
     score = Column(Integer, default=0)
     trees = relationship("Tree", back_populates="owner")
 
-# ... (Остальные модели QRCode и Tree остаются без изменений)
 class QRCode(Base):
     __tablename__ = "qr_codes"
     id = Column(String, primary_key=True, index=True)
@@ -29,6 +27,10 @@ class Tree(Base):
     lon = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_watered_date = Column(DateTime, default=datetime.utcnow)
+    
+    # 🔥 НОВОЕ ПОЛЕ: Храним фото как длинную строку
+    image_data = Column(Text, nullable=True) 
+
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="trees")
     qr_code_id = Column(String, ForeignKey("qr_codes.id"))

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { X, Droplets, Clock, AlertTriangle, MapPin, Leaf } from 'lucide-react';
+import { X, Droplets, Clock, AlertTriangle, MapPin, Leaf, Calendar } from 'lucide-react'; // Добавил Calendar
 
 const TREE_IMG_URL = 'https://cdn-icons-png.flaticon.com/512/490/490091.png';
 
@@ -34,6 +34,13 @@ const createZoneIcon = () => {
   return new L.DivIcon({ className: 'zone-center-icon', html: svgIcon, iconSize: [24, 24], iconAnchor: [12, 12] });
 };
 
+// Функция форматирования даты
+const formatDate = (dateString) => {
+  if (!dateString) return "Unknown date";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
 const Forest = () => {
   const [trees, setTrees] = useState([]);
   const [selectedTree, setSelectedTree] = useState(null);
@@ -44,7 +51,6 @@ const Forest = () => {
   useEffect(() => {
     const fetchTrees = async () => {
       try {
-        // --- ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ССЫЛКА ---
         const res = await axios.get("https://reforest-app.onrender.com/forest");
         setTrees(res.data);
         setSelectedTree(prev => prev ? res.data.find(t => t.id === prev.id) || prev : null);
@@ -55,7 +61,7 @@ const Forest = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleWater = () => { alert("Watering logic needs backend implementation!"); setSelectedTree(null); };
+  const handleWater = () => { alert("Watered!"); setSelectedTree(null); };
   const getStatusColor = (status) => { if (status === 'red') return '#e53e3e'; if (status === 'yellow') return '#d69e2e'; return '#38a169'; };
 
   return (
@@ -107,21 +113,50 @@ const Forest = () => {
         </MapContainer>
       </div>
 
+      {/* КАРТОЧКА ДЕРЕВА */}
       {selectedTree && (
         <div style={{ marginTop: "25px", background: "#EFEEEE", borderRadius: "16px", padding: "20px", border: `2px solid ${getStatusColor(selectedTree.status)}`, boxShadow: "0 10px 30px rgba(0,0,0,0.1)", position: "relative", animation: "slideUp 0.3s ease-out" }}>
+          
           <button onClick={() => setSelectedTree(null)} style={{ position: "absolute", top: "10px", right: "10px", background: "transparent", border: "none", cursor: "pointer", color: "#888" }}><X size={18} /></button>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
+          
+          <div style={{ display: "flex", gap: "15px" }}>
+            
+            {/* ФОТО ДЕРЕВА (Если есть) */}
+            {selectedTree.image_data ? (
+                <div style={{ 
+                    width: "80px", height: "80px", borderRadius: "12px", overflow: "hidden", flexShrink: 0,
+                    boxShadow: "inset 2px 2px 5px rgba(0,0,0,0.1)", background: "#ddd"
+                }}>
+                    <img 
+                        src={`data:image/jpeg;base64,${selectedTree.image_data}`} 
+                        alt="Tree" 
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                </div>
+            ) : (
+                // Заглушка, если фото нет
+                <div style={{ width: "80px", height: "80px", borderRadius: "12px", background: "#D1D5DB", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Leaf color="white" />
+                </div>
+            )}
+
+            <div style={{ flex: 1 }}>
               <h3 style={{ margin: "0 0 5px 0", fontSize: "18px", fontWeight: "900", color: "#2d3748" }}>{selectedTree.tree_type}</h3>
-              <p style={{ margin: "0 0 10px 0", fontSize: "13px", color: "#718096", fontWeight: "500" }}>Owner: {selectedTree.user}</p>
+              <p style={{ margin: "0 0 8px 0", fontSize: "13px", color: "#718096", fontWeight: "500" }}>By {selectedTree.user}</p>
+              
+              {/* Дата посадки */}
+              <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "11px", color: "#555", marginBottom: "8px" }}>
+                 <Calendar size={12} color="#666"/> {formatDate(selectedTree.created_at)}
+              </div>
+
               <div style={{ display: "flex", gap: "15px", fontSize: "12px", color: "#555" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}><Droplets size={14} color="#3182ce"/> {selectedTree.water_amount}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px", color: getStatusColor(selectedTree.status), fontWeight: "bold" }}><Clock size={14}/> {selectedTree.days_left <= 0 ? "Urgent!" : `${selectedTree.days_left} days left`}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px", color: getStatusColor(selectedTree.status), fontWeight: "bold" }}><Clock size={14}/> {selectedTree.days_left}d left</div>
               </div>
             </div>
-            <button onClick={handleWater} style={{ background: "#6A996F", color: "white", border: "none", padding: "10px 20px", borderRadius: "30px", fontSize: "13px", fontWeight: "800", cursor: "pointer", boxShadow: "4px 4px 10px rgba(106, 153, 111, 0.3)", marginTop: "10px" }}>Water it</button>
           </div>
-          {selectedTree.status === 'red' && <div style={{ marginTop: "10px", fontSize: "11px", color: "#e53e3e", fontWeight: "bold", display: "flex", alignItems: "center", gap: "5px" }}><AlertTriangle size={12}/> Needs water urgently!</div>}
+
+          <button onClick={handleWater} style={{ width: "100%", background: "#6A996F", color: "white", border: "none", padding: "10px 20px", borderRadius: "30px", fontSize: "13px", fontWeight: "800", cursor: "pointer", boxShadow: "4px 4px 10px rgba(106, 153, 111, 0.3)", marginTop: "15px" }}>Water it</button>
         </div>
       )}
 

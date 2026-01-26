@@ -6,13 +6,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from datetime import datetime
 import random
-from PIL import Image, ExifTags 
+import base64
 import io
+from PIL import Image, ExifTags 
 
 import models
 from models import User, QRCode, Tree
 from database import engine, SessionLocal, get_db
 
+# Обновляем таблицы
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -51,9 +53,8 @@ def get_decimal_from_dms(dms, ref):
         decimal = -decimal
     return decimal
 
-def get_image_gps(image_bytes):
+def get_image_gps(image):
     try:
-        image = Image.open(io.BytesIO(image_bytes))
         exif = image._getexif()
         if not exif: return None
         gps_info = {}
@@ -70,6 +71,13 @@ def get_image_gps(image_bytes):
         return None
     except:
         return None
+
+def compress_image_to_base64(image):
+    """Сжимает картинку и переводит в текст для БД"""
+    image.thumbnail((400, 400)) # Уменьшаем размер до 400x400
+    buffered = io.BytesIO()
+    image.save(buffered, format="JPEG", quality=70)
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 # --- ЭНДПОИНТЫ ---
 
@@ -98,6 +106,11 @@ def login(user_data: UserAuth, db: Session = Depends(get_db)):
 
 @app.post("/verify-qr")
 def verify_qr(request: QRVerifyRequest, db: Session = Depends(get_db)):
+    if request.qr_data == "CHECK_USER_ALIVE": # Проверка существования юзера
+        user = db.query(User).filter(User.id == request.user_id).first()
+        if not user: raise HTTPException(status_code=404, detail="User not found")
+        return {"status": "alive"}
+
     qr_entry = db.query(QRCode).filter(QRCode.id == request.qr_data).first()
     if not qr_entry:
         raise HTTPException(status_code=400, detail="QR Code Invalid")
@@ -128,6 +141,7 @@ def reset_database(db: Session = Depends(get_db)):
         db.rollback()
         return {"status": "error", "message": str(e)}
 
+# 🔥 ОБНОВЛЕННАЯ СХЕМА ОТВЕТА
 class TreeResponse(BaseModel):
     id: int
     pos: list 
@@ -136,6 +150,8 @@ class TreeResponse(BaseModel):
     user: str
     water_amount: str
     days_left: int
+    created_at: datetime # Дата посадки
+    image_data: Optional[str] = None # Картинка
 
 @app.get("/forest", response_model=List[TreeResponse])
 def get_forest(db: Session = Depends(get_db)):
@@ -149,7 +165,9 @@ def get_forest(db: Session = Depends(get_db)):
             "tree_type": t.qr_info.tree_type if t.qr_info else "Wild Tree",
             "user": t.owner.username if t.owner else "Unknown",
             "water_amount": t.qr_info.water_amount if t.qr_info else "2L",
-            "days_left": 5
+            "days_left": 5,
+            "created_at": t.created_at,
+            "image_data": t.image_data
         })
     return result
 
@@ -157,48 +175,52 @@ def get_forest(db: Session = Depends(get_db)):
 def get_leaderboard(db: Session = Depends(get_db)):
     return db.query(User).order_by(User.score.desc()).limit(10).all()
 
-# --- 🔥 ОБНОВЛЕННЫЙ PREDICT (С ПРИОРИТЕТОМ ТЕЛЕФОНА) ---
 @app.post("/predict")
 async def predict_tree(
     file: UploadFile = File(...),      
     username: str = Form(...),
-    # Принимаем координаты от телефона (могут быть пустыми)
     lat: Optional[float] = Form(None),
     lon: Optional[float] = Form(None),
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.username == username).first()
-    if not user:
-        return {"success": False, "message": "User not found"}
+    if not user: return {"success": False, "message": "User not found"}
 
-    final_lat, final_lon = None, None
-    gps_source = "Random"
-
-    # 1. Приоритет: GPS от УСТРОЙСТВА (Телефона/Ноутбука)
-    if lat is not None and lon is not None:
-        final_lat, final_lon = lat, lon
-        gps_source = "Device GPS"
+    # Читаем файл
+    image_bytes = await file.read()
     
-    # 2. Если телефон не дал GPS, пробуем вытащить из ФОТО
-    if final_lat is None:
-        image_bytes = await file.read()
-        photo_coords = get_image_gps(image_bytes)
-        if photo_coords:
-            final_lat, final_lon = photo_coords
-            gps_source = "Photo Metadata"
+    # 1. Сжимаем и конвертируем фото для базы
+    try:
+        pil_image = Image.open(io.BytesIO(image_bytes))
+        base64_img = compress_image_to_base64(pil_image)
+    except:
+        base64_img = None
 
-    # 3. Если всё пусто — ставим случайную точку (Fallback)
+    # 2. Определяем координаты
+    final_lat, final_lon = lat, lon
+    gps_source = "Device GPS"
+    
+    if final_lat is None:
+        try:
+            pil_image = Image.open(io.BytesIO(image_bytes)) # Открываем снова для GPS
+            photo_coords = get_image_gps(pil_image)
+            if photo_coords:
+                final_lat, final_lon = photo_coords
+                gps_source = "Photo Metadata"
+        except: pass
+
     if final_lat is None:
         final_lat = 42.8953 + random.uniform(-0.005, 0.005)
         final_lon = 71.3737 + random.uniform(-0.005, 0.005)
         gps_source = "Estimated Location"
 
-    # Сохраняем
+    # 3. Сохраняем
     new_tree = Tree(
         lat=final_lat,
         lon=final_lon,
         owner_id=user.id,
         qr_code_id="ELM-001", 
+        image_data=base64_img, # Сохраняем фото!
         created_at=datetime.utcnow(),
         last_watered_date=datetime.utcnow()
     )
@@ -210,7 +232,7 @@ async def predict_tree(
 
     return {
         "success": True,
-        "message": f"Tree planted using {gps_source}!",
+        "message": f"Tree planted! ({gps_source})",
         "coords": [final_lat, final_lon],
         "tree_id": new_tree.id
     }

@@ -20,7 +20,7 @@ const Header = ({ user, onLogout }) => {
         padding: "15px 24px", display: "flex", justifyContent: "space-between", alignItems: "center",
         borderBottom: "1px solid rgba(0,0,0,0.05)"
     }}>
-        <div style={{ fontWeight: "800", color: "#6A996F", fontSize: "18px" }}>DeForest.</div>
+        <div style={{ fontWeight: "800", color: "#6A996F", fontSize: "18px" }}>ReForest.</div>
         
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         {/* Клик по плашке открывает профиль */}

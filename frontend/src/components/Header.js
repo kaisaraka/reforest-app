@@ -18,7 +18,7 @@ const Header = () => {
           <User size={20} strokeWidth={2.5} />
         </Link>
         <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "900", color: "#6A996F", letterSpacing: "-0.5px" }}>
-          DeForest.
+          ReForest.
         </h1>
       </div>
 

@@ -41,7 +41,7 @@ const Login = () => {
           <Sprout size={40} color="#6A996F" strokeWidth={1.5} />
         </div>
         <h1 style={{ fontSize: "36px", fontWeight: "900", color: "#6A996F", margin: 0, letterSpacing: "-1px" }}>
-          DeForest.
+          ReForest.
         </h1>
       </div>
 

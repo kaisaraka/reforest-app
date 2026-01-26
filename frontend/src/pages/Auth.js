@@ -77,7 +77,7 @@ const Auth = ({ setIsAuthenticated }) => {
         <div style={{ background: "#6A996F", padding: "10px", borderRadius: "12px" }}>
            <Leaf color="white" size={28} />
         </div>
-        <h1 style={{ fontSize: "24px", fontWeight: "900", color: "#333", margin: 0 }}>DeForest.</h1>
+        <h1 style={{ fontSize: "24px", fontWeight: "900", color: "#333", margin: 0 }}>ReForest.</h1>
       </div>
 
       <div style={cardStyle}>

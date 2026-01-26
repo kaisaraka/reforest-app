@@ -10,6 +10,7 @@ class User(Base):
     hashed_password = Column(String) 
     score = Column(Integer, default=0)
     trees = relationship("Tree", back_populates="owner")
+    waterings = relationship("WateringEvent", back_populates="user") # Связь с поливами
 
 class QRCode(Base):
     __tablename__ = "qr_codes"
@@ -27,11 +28,24 @@ class Tree(Base):
     lon = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_watered_date = Column(DateTime, default=datetime.utcnow)
-    
-    # 🔥 НОВОЕ ПОЛЕ: Храним фото как длинную строку
     image_data = Column(Text, nullable=True) 
 
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="trees")
+    
     qr_code_id = Column(String, ForeignKey("qr_codes.id"))
     qr_info = relationship("QRCode", back_populates="tree")
+
+    # 🔥 НОВОЕ: Связь с историей полива
+    history = relationship("WateringEvent", back_populates="tree", cascade="all, delete-orphan")
+
+class WateringEvent(Base):
+    __tablename__ = "watering_events"
+    id = Column(Integer, primary_key=True, index=True)
+    tree_id = Column(Integer, ForeignKey("trees.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    image_data = Column(Text, nullable=True) # Фото доказательство
+
+    tree = relationship("Tree", back_populates="history")
+    user = relationship("User", back_populates="waterings")

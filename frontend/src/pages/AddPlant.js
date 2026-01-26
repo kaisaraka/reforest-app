@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { QrCode, Camera, CheckCircle, XCircle, Sprout, ScanLine, MapPin } from 'lucide-react';
+import { QrCode, Camera, CheckCircle, XCircle, Sprout, ScanLine, MapPin, RefreshCw } from 'lucide-react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -15,9 +15,10 @@ const AddPlant = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Координаты устройства (телефона)
+  // Координаты устройства
   const [deviceCoords, setDeviceCoords] = useState(null);
-  const [locationStatus, setLocationStatus] = useState("Waiting...");
+  const [locationStatus, setLocationStatus] = useState("Waiting for GPS...");
+  const [gpsError, setGpsError] = useState(false); // Флаг ошибки GPS
 
   const [qrFile, setQrFile] = useState(null);
   const [qrPreview, setQrPreview] = useState(null);
@@ -31,29 +32,43 @@ const AddPlant = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const API_BASE_URL = "https://reforest-app.onrender.com";
 
-  // --- ПОЛУЧЕНИЕ ГЕОЛОКАЦИИ ---
+  // --- ФУНКЦИЯ ЗАПРОСА GPS ---
+  const requestLocation = () => {
+    setGpsError(false);
+    setLocationStatus("Locating you...");
+    
+    if (!("geolocation" in navigator)) {
+      setLocationStatus("Geolocation not supported");
+      setGpsError(true);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setDeviceCoords({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude
+        });
+        setLocationStatus("GPS Location Found! ✅");
+        setGpsError(false);
+      },
+      (err) => {
+        console.error(err);
+        setGpsError(true);
+        // Показываем пользователю понятную ошибку
+        if (err.code === 1) setLocationStatus("Permission Denied (Enable GPS)");
+        else if (err.code === 2) setLocationStatus("Position Unavailable");
+        else if (err.code === 3) setLocationStatus("GPS Timeout");
+        else setLocationStatus("GPS Error");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Запрашиваем GPS автоматически при переходе на шаг 2
   useEffect(() => {
-    // Запрашиваем геопозицию, только когда переходим к Шагу 2 (Фото)
     if (step === 2) {
-      setLocationStatus("Locating you...");
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setDeviceCoords({
-              lat: position.coords.latitude,
-              lon: position.coords.longitude
-            });
-            setLocationStatus("Location Found via Device 🛰️");
-          },
-          (err) => {
-            console.error(err);
-            setLocationStatus("GPS signal weak (Using photo or estimate)");
-          },
-          { enableHighAccuracy: true } // Просим максимально точные данные
-        );
-      } else {
-        setLocationStatus("Geolocation not supported");
-      }
+      requestLocation();
     }
   }, [step]);
 
@@ -94,7 +109,6 @@ const AddPlant = () => {
     }
   };
 
-  // --- ОТПРАВКА ФОТО + GPS УСТРОЙСТВА ---
   const handleSubmitPlant = async () => {
     if (!plantFile || !user) return;
     setLoading(true); setError(null);
@@ -103,7 +117,6 @@ const AddPlant = () => {
     formData.append("file", plantFile);
     formData.append("username", user.username);
     
-    // 🔥 Если телефон определил координаты, добавляем их в запрос
     if (deviceCoords) {
       formData.append("lat", deviceCoords.lat);
       formData.append("lon", deviceCoords.lon);
@@ -184,9 +197,25 @@ const AddPlant = () => {
 
         {step === 2 && !finalResult && (
           <div style={{animation: "fadeIn 0.5s"}}>
-             {/* Индикатор статуса GPS */}
-             <div style={{ fontSize: "11px", color: deviceCoords ? "#166534" : "#888", marginBottom: "10px", display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", fontWeight: "600" }}>
-                <MapPin size={12}/> {locationStatus}
+             
+             {/* БЛОК СТАТУСА GPS */}
+             <div style={{ 
+               marginBottom: "15px", padding: "10px", borderRadius: "12px",
+               background: deviceCoords ? "#F0FDF4" : "#FEF2F2",
+               border: `1px solid ${deviceCoords ? "#BBF7D0" : "#FECACA"}`,
+               display: "flex", alignItems: "center", justifyContent: "space-between"
+             }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: "600", color: deviceCoords ? "#166534" : "#991B1B" }}>
+                   <MapPin size={16} /> 
+                   {locationStatus}
+                </div>
+                
+                {/* Кнопка повтора, если ошибка */}
+                {!deviceCoords && (
+                  <button onClick={requestLocation} style={{ background: "white", border: "1px solid #ccc", borderRadius: "8px", padding: "5px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "bold" }}>
+                    <RefreshCw size={12}/> Retry
+                  </button>
+                )}
              </div>
 
              <div style={uploadBoxStyle} onClick={() => fileInputRef.current.click()}>

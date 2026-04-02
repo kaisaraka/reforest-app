@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, Globe } from 'lucide-react'; // Добавили Globe
 import BottomNav from './components/BottomNav';
 import Forest from './pages/Forest';
 import AddPlant from './pages/AddPlant';
@@ -9,9 +9,14 @@ import Leaderboard from './pages/Leaderboard';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 
-// Хедер
+// Импортируем наш движок перевода
+import { LanguageProvider, useLanguage } from './LanguageContext';
+
+// Хедер с переключателем языка
 const Header = ({ user, onLogout }) => {
   const navigate = useNavigate();
+  const { language, changeLanguage } = useLanguage(); // Достаем функции из движка
+
   return (
     <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
@@ -19,20 +24,30 @@ const Header = ({ user, onLogout }) => {
         padding: "15px 24px", display: "flex", justifyContent: "space-between", alignItems: "center",
         borderBottom: "1px solid rgba(0,0,0,0.05)"
     }}>
-        <div style={{ fontWeight: "800", color: "#6A996F", fontSize: "18px" }}>DeForest.</div>
+        <div style={{ fontWeight: "900", color: "#6A996F", fontSize: "20px" }}>ReForest.</div>
+        
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <div onClick={() => navigate("/profile")} style={{ background: "#E8F5E9", padding: "6px 12px", borderRadius: "20px", color: "#166534", fontSize: "12px", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
-            <UserIcon size={14}/> {user?.username} • {user?.score} Lf
-        </div>
-        <button onClick={onLogout} style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#e53e3e", padding: "5px" }}>
-            <LogOut size={20} />
-        </button>
+            {/* КНОПКА ПЕРЕКЛЮЧЕНИЯ ЯЗЫКА */}
+            <button 
+                onClick={() => changeLanguage(language === 'en' ? 'ru' : 'en')}
+                style={{ background: "#F0F2F5", border: "none", padding: "6px 10px", borderRadius: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", color: "#555", fontWeight: "bold", fontSize: "12px" }}
+            >
+                <Globe size={14}/> {language.toUpperCase()}
+            </button>
+
+            <div onClick={() => navigate("/profile")} style={{ background: "#E8F5E9", padding: "6px 12px", borderRadius: "20px", color: "#166534", fontSize: "12px", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
+                <UserIcon size={14}/> {user?.username} • {user?.score} Lf
+            </div>
+            <button onClick={onLogout} style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#e53e3e", padding: "5px" }}>
+                <LogOut size={20} />
+            </button>
         </div>
     </div>
   );
 };
 
-function App() {
+// Главный компонент (Внутренности App)
+const MainApp = () => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -42,7 +57,6 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  // 1. Загрузка при старте
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -51,39 +65,25 @@ function App() {
     }
   }, []);
 
-  // 2. 🔥 АВТО-ОБНОВЛЕНИЕ ОЧКОВ (POLLING)
   useEffect(() => {
-    // Если пользователя нет, ничего не делаем
     if (!user || !user.id) return;
-
-    // Запускаем интервал каждые 3000 мс (3 секунды)
     const interval = setInterval(() => {
       const formData = new FormData();
       formData.append("user_id", user.id);
-
       axios.post("https://reforest-app.onrender.com/user/refresh", formData)
         .then(res => {
-          // Если очки на сервере отличаются от того, что у нас на экране
           if (res.data.score !== user.score) {
-            console.log("Score updated!", res.data.score);
-            
-            // Обновляем состояние и память
             const updatedUser = { ...user, score: res.data.score };
             setUser(updatedUser);
             localStorage.setItem("user", JSON.stringify(updatedUser));
           }
         })
         .catch(err => {
-          // Если сервер ответил, что пользователя нет (404) - выкидываем
-          if (err.response && err.response.status === 404) {
-            handleLogout();
-          }
+          if (err.response && err.response.status === 404) handleLogout();
         });
     }, 3000); 
-
-    // Очищаем интервал при уходе со страницы
     return () => clearInterval(interval);
-  }, [user]); // Перезапуск, если user изменился
+  }, [user]);
 
   return (
     <Router>
@@ -109,6 +109,15 @@ function App() {
         )}
       </div>
     </Router>
+  );
+};
+
+// Оборачиваем всё в LanguageProvider
+function App() {
+  return (
+    <LanguageProvider>
+      <MainApp />
+    </LanguageProvider>
   );
 }
 

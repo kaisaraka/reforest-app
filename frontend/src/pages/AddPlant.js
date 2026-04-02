@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { QrCode, Camera, CheckCircle, XCircle, Sprout, ScanLine, MapPin, RefreshCw, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { QrCode, Camera, CheckCircle, Sprout, ScanLine, MapPin, RefreshCw, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -10,16 +10,15 @@ const treeIcon = new L.Icon({
   iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -32]
 });
 
-// Список деревьев
 const TREE_OPTIONS = [
-    "Oak (Дуб)",
-    "Pine (Сосна)",
-    "Birch (Береза)",
-    "Maple (Клен)",
-    "Spruce (Ель)",
-    "Apple Tree (Яблоня)",
-    "Cherry (Вишня)",
-    "Wild Tree (Дикое)"
+    "Oak",
+    "Pine",
+    "Birch",
+    "Maple",
+    "Spruce",
+    "Apple Tree",
+    "Cherry",
+    "Wild Tree"
 ];
 
 const AddPlant = () => {
@@ -35,7 +34,6 @@ const AddPlant = () => {
   const [qrPreview, setQrPreview] = useState(null);
   const [qrData, setQrData] = useState(null); 
 
-  // Состояние для выбора дерева и открытия меню
   const [selectedTreeType, setSelectedTreeType] = useState(TREE_OPTIONS[0]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -45,7 +43,8 @@ const AddPlant = () => {
 
   const fileInputRef = useRef(null);
   const user = JSON.parse(localStorage.getItem("user"));
-  const API_BASE_URL = "https://reforest-app.onrender.com";
+  
+  const API_BASE_URL = "http://localhost:8000";
 
   const requestLocation = () => {
     setGpsError(false);
@@ -54,7 +53,7 @@ const AddPlant = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setDeviceCoords({ lat: position.coords.latitude, lon: position.coords.longitude });
-        setLocationStatus("GPS Location Found! ✅");
+        setLocationStatus("GPS Location Found!");
         setGpsError(false);
       },
       (err) => {
@@ -100,7 +99,7 @@ const AddPlant = () => {
     setLoading(true); setError(null);
     try {
       const response = await axios.post(`${API_BASE_URL}/verify-qr`, { qr_data: "ELM-001", user_id: user.id });
-      setQrData({ ...response.data, tree_type: "Elm (Вяз)" }); 
+      setQrData({ ...response.data, tree_type: "Elm" }); 
       setStep(2);
     } catch (err) { setError("QR Code Invalid"); } finally { setLoading(false); }
   };
@@ -132,7 +131,6 @@ const AddPlant = () => {
     } catch (err) { setError("Server Error"); } finally { setLoading(false); }
   };
 
-  // Styles
   const uploadBoxStyle = { background: "#EFEEEE", borderRadius: "20px", height: "180px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginBottom: "20px", cursor: "pointer", border: "2px solid #E5E7EB", boxShadow: "inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff" };
   const buttonStyle = (isActive) => ({ width: "100%", padding: "16px", borderRadius: "30px", background: isActive ? "#6A996F" : "#D1D1D1", border: "none", color: "white", fontWeight: "800", fontSize: "14px", cursor: isActive ? "pointer" : "default", boxShadow: isActive ? "0 4px 10px rgba(106, 153, 111, 0.3)" : "none", transition: "all 0.3s ease" });
   const modeCardStyle = { background: "#EFEEEE", padding: "20px", borderRadius: "20px", marginBottom: "15px", cursor: "pointer", display: "flex", alignItems: "center", gap: "15px", boxShadow: "5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff", transition: "transform 0.1s" };
@@ -175,13 +173,9 @@ const AddPlant = () => {
 
         {step === 2 && !finalResult && (
           <div style={{animation: "fadeIn 0.5s"}}>
-             
-             {/* --- КРАСИВЫЙ ВЫБОР ДЕРЕВА --- */}
              {!qrData ? (
                 <div style={{ marginBottom: "20px", textAlign: "left", position: "relative" }}>
                     <label style={{ fontSize: "12px", fontWeight: "bold", color: "#888", marginLeft: "5px", marginBottom: "8px", display: "block" }}>Select Tree Type</label>
-                    
-                    {/* Кнопка-Триггер */}
                     <div 
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                         style={{
@@ -196,7 +190,6 @@ const AddPlant = () => {
                         {isDropdownOpen ? <ChevronUp size={20} color="#6A996F"/> : <ChevronDown size={20} color="#888"/>}
                     </div>
 
-                    {/* Выпадающее меню */}
                     {isDropdownOpen && (
                         <div style={{
                             position: "absolute", top: "100%", left: 0, right: 0, marginTop: "8px",
@@ -230,7 +223,6 @@ const AddPlant = () => {
                 </div>
              )}
 
-             {/* GPS СТАТУС */}
              <div style={{ marginBottom: "15px", padding: "10px", borderRadius: "12px", background: deviceCoords ? "#F0FDF4" : "#FEF2F2", border: `1px solid ${deviceCoords ? "#BBF7D0" : "#FECACA"}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: "600", color: deviceCoords ? "#166534" : "#991B1B" }}><MapPin size={16} /> {locationStatus}</div>
                 {!deviceCoords && <button onClick={requestLocation} style={{ background: "white", border: "1px solid #ccc", borderRadius: "8px", padding: "5px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: "bold" }}><RefreshCw size={12}/> Retry</button>}

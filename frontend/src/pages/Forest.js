@@ -3,21 +3,19 @@ import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { X, Droplets, Clock, MapPin, Leaf, Calendar, History, Camera, Check, Trophy } from 'lucide-react';
+import { X, Droplets, Clock, MapPin, Leaf, Camera, Trophy, History } from 'lucide-react';
 
 const TREE_IMG_URL = 'https://cdn-icons-png.flaticon.com/512/490/490091.png';
 
-// Иконка дерева
 const createTreeIcon = (status, isSelected) => {
-  const size = isSelected ? 48 : 32; // Чуть увеличил выбранное
+  const size = isSelected ? 48 : 32; 
   const anchor = [size / 2, size];
   let filterStyle = "";
   
-  // Цветовые фильтры для состояний
   if (status === 'yellow') filterStyle = "sepia(1) saturate(3) hue-rotate(10deg) brightness(1.1)";
   else if (status === 'red') filterStyle = "grayscale(1) sepia(1) saturate(4) hue-rotate(-50deg) brightness(0.9)";
   
-  if (isSelected) filterStyle += " drop-shadow(0px 5px 15px rgba(106, 153, 111, 0.6))"; // Красивая тень при выборе
+  if (isSelected) filterStyle += " drop-shadow(0px 5px 15px rgba(106, 153, 111, 0.6))"; 
 
   return new L.DivIcon({
     className: '',
@@ -44,7 +42,6 @@ const Forest = () => {
   const [showRecommended, setShowRecommended] = useState(false);
   const [watering, setWatering] = useState(false); 
   
-  // Состояние для красивого модального окна успеха
   const [showSuccess, setShowSuccess] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   
@@ -56,7 +53,7 @@ const Forest = () => {
 
   const fetchTrees = async () => {
       try {
-        const res = await axios.get("https://reforest-app.onrender.com/forest");
+        const res = await axios.get("http://localhost:8000/forest");
         setTrees(res.data);
         if (selectedTree) {
             const updated = res.data.find(t => t.id === selectedTree.id);
@@ -82,9 +79,8 @@ const Forest = () => {
     formData.append("file", file);
 
     try {
-        await axios.post("https://reforest-app.onrender.com/water", formData);
+        await axios.post("http://localhost:8000/water", formData);
         
-        // Вместо alert показываем красивое окно
         setEarnedPoints(30);
         setShowSuccess(true);
         
@@ -101,8 +97,6 @@ const Forest = () => {
 
   return (
     <div style={{ padding: "0 24px 120px 24px" }}>
-      
-      {/* --- HEADER --- */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", marginTop: "10px" }}>
         <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#333", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>Forest Map</h2>
         <button onClick={() => setShowRecommended(!showRecommended)} style={{ background: showRecommended ? "#6A996F" : "#fff", color: showRecommended ? "white" : "#555", border: "1px solid #eee", borderRadius: "20px", padding: "8px 14px", fontSize: "11px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", gap: "6px", boxShadow: "0 2px 5px rgba(0,0,0,0.05)" }}>
@@ -110,7 +104,6 @@ const Forest = () => {
         </button>
       </div>
 
-      {/* --- MAP --- */}
       <div style={{ height: "400px", borderRadius: "24px", overflow: "hidden", position: "relative", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", border: "4px solid #fff" }}>
         <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%", background: "#e5e7eb" }} zoomControl={false}>
           <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
@@ -119,20 +112,16 @@ const Forest = () => {
         </MapContainer>
       </div>
 
-      {/* --- TREE CARD (MODERN DESIGN) --- */}
       {selectedTree && (
         <div style={{ marginTop: "20px", background: "#fff", borderRadius: "24px", padding: "20px", boxShadow: "0 20px 50px rgba(0,0,0,0.1)", position: "relative", animation: "slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)" }}>
-          
-          {/* Close Button */}
           <button onClick={() => setSelectedTree(null)} style={{ position: "absolute", top: "15px", right: "15px", background: "#F3F4F6", border: "none", borderRadius: "50%", width: "30px", height: "30px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B7280" }}>
             <X size={16} />
           </button>
           
-          {/* Header Info */}
           <div style={{ display: "flex", gap: "15px", marginBottom: "20px" }}>
             {selectedTree.image_data ? (
                 <div style={{ width: "80px", height: "80px", borderRadius: "16px", overflow: "hidden", flexShrink: 0, boxShadow: "0 4px 10px rgba(0,0,0,0.1)" }}>
-                    <img src={`data:image/jpeg;base64,${selectedTree.image_data}`} alt="Tree" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img src={selectedTree.image_data} alt="Tree" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </div>
             ) : (<div style={{ width: "80px", height: "80px", borderRadius: "16px", background: "#E5E7EB", display: "flex", alignItems: "center", justifyContent: "center" }}><Leaf color="#9CA3AF" /></div>)}
 
@@ -148,7 +137,6 @@ const Forest = () => {
             </div>
           </div>
 
-          {/* Stats Grid */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
              <div style={{ background: "#F9FAFB", padding: "12px", borderRadius: "14px", display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={{ background: "#DBEAFE", padding: "8px", borderRadius: "10px", color: "#3B82F6" }}><Droplets size={18}/></div>
@@ -160,7 +148,6 @@ const Forest = () => {
              </div>
           </div>
 
-          {/* History Section */}
           <div style={{ marginBottom: "20px" }}>
             <div style={{ fontSize: "13px", fontWeight: "800", color: "#374151", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}><History size={16}/> Recent Care</div>
             <div style={{ background: "#F9FAFB", borderRadius: "16px", padding: "10px", maxHeight: "120px", overflowY: "auto", border: "1px solid #F3F4F6" }}>
@@ -169,7 +156,7 @@ const Forest = () => {
                         <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", paddingBottom: "8px", borderBottom: idx !== selectedTree.history.length - 1 ? "1px solid #E5E7EB" : "none" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                                 {event.image_data ? (
-                                    <img src={`data:image/jpeg;base64,${event.image_data}`} style={{ width: "32px", height: "32px", borderRadius: "10px", objectFit: "cover" }} alt="proof"/>
+                                    <img src={event.image_data} style={{ width: "32px", height: "32px", borderRadius: "10px", objectFit: "cover" }} alt="proof"/>
                                 ) : (<div style={{ width: "32px", height: "32px", borderRadius: "10px", background: "#E5E7EB" }}></div>)}
                                 <div>
                                     <div style={{ fontWeight: "700", color: "#374151", fontSize: "12px" }}>{event.username}</div>
@@ -180,12 +167,11 @@ const Forest = () => {
                         </div>
                     ))
                 ) : (
-                    <div style={{ textAlign: "center", color: "#9CA3AF", fontSize: "12px", padding: "15px" }}>No history yet. Be the first hero! 🦸‍♂️</div>
+                    <div style={{ textAlign: "center", color: "#9CA3AF", fontSize: "12px", padding: "15px" }}>No history yet. Be the first hero!</div>
                 )}
             </div>
           </div>
 
-          {/* Water Button */}
           <input type="file" ref={fileInputRef} onChange={handleWaterFileSelect} accept="image/*" style={{ display: "none" }} />
           <button 
             onClick={() => fileInputRef.current.click()} 
@@ -199,7 +185,6 @@ const Forest = () => {
         </div>
       )}
 
-      {/* --- SUCCESS MODAL --- */}
       {showSuccess && (
         <div style={{
             position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,

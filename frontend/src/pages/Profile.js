@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { User, Sprout, Droplets, Star, RefreshCw, GraduationCap, BookOpen, Home, Mail } from 'lucide-react';
 
+const API_BASE_URL = "https://reforest-app-72zo.vercel.app/_backend";
+
 const Profile = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,13 +19,13 @@ const Profile = () => {
       const formData = new FormData();
       formData.append("user_id", currentUser.id);
 
-      const userRes = await axios.post("http://localhost:8000/user/refresh", formData);
+      const userRes = await axios.post(`${API_BASE_URL}/user/refresh`, formData);
       const updatedUser = { ...currentUser, score: userRes.data.score };
       
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
 
-      const historyRes = await axios.post("http://localhost:8000/user/history", formData);
+      const historyRes = await axios.post(`${API_BASE_URL}/user/history`, formData);
       setHistory(historyRes.data);
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -34,6 +36,7 @@ const Profile = () => {
 
   useEffect(() => {
     fetchHistory();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatDate = (dateString) => {

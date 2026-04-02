@@ -28,6 +28,7 @@ const AddPlant = () => {
   
   const [deviceCoords, setDeviceCoords] = useState(null);
   const [locationStatus, setLocationStatus] = useState("Waiting for GPS...");
+  // eslint-disable-next-line no-unused-vars
   const [gpsError, setGpsError] = useState(false);
 
   const [qrFile, setQrFile] = useState(null);
@@ -44,7 +45,7 @@ const AddPlant = () => {
   const fileInputRef = useRef(null);
   const user = JSON.parse(localStorage.getItem("user"));
   
-  const API_BASE_URL = "http://localhost:8000";
+  const API_BASE_URL = "https://reforest-app-72zo.vercel.app/_backend";
 
   const requestLocation = () => {
     setGpsError(false);

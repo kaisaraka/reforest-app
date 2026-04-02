@@ -6,6 +6,7 @@ import L from 'leaflet';
 import { X, Droplets, Clock, MapPin, Leaf, Camera, Trophy, History } from 'lucide-react';
 
 const TREE_IMG_URL = 'https://cdn-icons-png.flaticon.com/512/490/490091.png';
+const API_BASE_URL = "https://reforest-app-72zo.vercel.app/_backend";
 
 const createTreeIcon = (status, isSelected) => {
   const size = isSelected ? 48 : 32; 
@@ -53,7 +54,7 @@ const Forest = () => {
 
   const fetchTrees = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/forest");
+        const res = await axios.get(`${API_BASE_URL}/forest`);
         setTrees(res.data);
         if (selectedTree) {
             const updated = res.data.find(t => t.id === selectedTree.id);
@@ -66,6 +67,7 @@ const Forest = () => {
     fetchTrees();
     const interval = setInterval(fetchTrees, 5000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
   const handleWaterFileSelect = async (e) => {
@@ -79,7 +81,7 @@ const Forest = () => {
     formData.append("file", file);
 
     try {
-        await axios.post("http://localhost:8000/water", formData);
+        await axios.post(`${API_BASE_URL}/water`, formData);
         
         setEarnedPoints(30);
         setShowSuccess(true);

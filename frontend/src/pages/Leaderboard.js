@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Trophy, X, Sprout, Droplets, GraduationCap, BookOpen, Home } from 'lucide-react';
 
+const API_BASE_URL = "https://reforest-app-72zo.vercel.app/_backend";
+
 const Leaderboard = () => {
   const [users, setUsers] = useState([]);
   
@@ -15,7 +17,7 @@ const Leaderboard = () => {
   const shanyraqs = ["Syrdariya", "Ordabasy", "Turkestan", "Kazygurt", "Farabi", "Yassawi"];
 
   useEffect(() => {
-    axios.get("http://localhost:8000/leaderboard")
+    axios.get(`${API_BASE_URL}/leaderboard`)
          .then(res => setUsers(res.data))
          .catch(err => console.error(err));
   }, []);
@@ -29,7 +31,7 @@ const Leaderboard = () => {
       const formData = new FormData();
       formData.append("user_id", user.id);
       
-      const res = await axios.post("http://localhost:8000/user/history", formData);
+      const res = await axios.post(`${API_BASE_URL}/user/history`, formData);
       setHistory(res.data.slice(0, 3));
     } catch (err) {
       console.error(err);

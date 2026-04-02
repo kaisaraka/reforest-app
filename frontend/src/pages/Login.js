@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Sprout } from 'lucide-react';
 
+const API_BASE_URL = "https://reforest-app-72zo.vercel.app/_backend";
+
 const Login = () => {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,7 +15,7 @@ const Login = () => {
     if (!username.trim()) return;
     setLoading(true);
     try {
-      const response = await axios.post("https://reforest-app.onrender.com", { username });
+      const response = await axios.post(`${API_BASE_URL}/login`, { username });
       localStorage.setItem("user", JSON.stringify(response.data));
       navigate("/forest"); 
     } catch (error) {

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Leaf, User, Lock, ArrowRight, Mail, Home, ChevronDown, KeyRound } from 'lucide-react';
 import { useLanguage } from '../LanguageContext'; 
 
+const API_BASE_URL = "https://reforest-app-72zo.vercel.app/_backend";
+
 const Auth = ({ setIsAuthenticated }) => {
   const [isLogin, setIsLogin] = useState(true); 
   const [role, setRole] = useState('student'); 
@@ -32,7 +34,7 @@ const Auth = ({ setIsAuthenticated }) => {
     e.preventDefault();
     setError(null); setSuccessMsg(null); setLoading(true);
     try {
-      const res = await axios.post("http://localhost:8000/forgot-password", { email: formData.email });
+      const res = await axios.post(`${API_BASE_URL}/forgot-password`, { email: formData.email });
       setRecoveryStep(2);
       setSuccessMsg(`${t('codeSent')} ${res.data.message}`); 
     } catch (err) {
@@ -46,7 +48,7 @@ const Auth = ({ setIsAuthenticated }) => {
     e.preventDefault();
     setError(null); setSuccessMsg(null); setLoading(true);
     try {
-      await axios.post("http://localhost:8000/reset-password", { 
+      await axios.post(`${API_BASE_URL}/reset-password`, { 
         email: formData.email, 
         token: recoveryCode, 
         new_password: formData.password 
@@ -81,7 +83,7 @@ const Auth = ({ setIsAuthenticated }) => {
         patronymic: formData.patronymic || null, email: formData.email, password: formData.password,
         shanyraq: role === 'student' ? formData.shanyraq : null
       };
-      const response = await axios.post(`http://localhost:8000${endpoint}`, payload);
+      const response = await axios.post(`${API_BASE_URL}${endpoint}`, payload);
       localStorage.setItem("user", JSON.stringify(response.data));
       setIsAuthenticated(true); navigate("/forest");
     } catch (err) { 

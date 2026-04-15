@@ -14,7 +14,22 @@ const Leaderboard = () => {
   const [roleFilter, setRoleFilter] = useState('all'); 
   const [shanyraqFilter, setShanyraqFilter] = useState('all');
   
-  const shanyraqs = ["Syrdariya", "Ordabasy", "Turkestan", "Kazygurt", "Farabi", "Yassawi"];
+//Алаш
+//Алтын Орда
+//Аманат
+//Атамекен
+//Азат
+//Әулиеата
+//Болашақ
+//Е.Сметов
+//Жалын
+//Каусар
+//Көне Тараз
+//Парасат
+//Ұлытау
+//Хан Тәңірі
+
+  const shanyraqs = ["Алаш", "Алтын Орда", "Аманат", "Атамекен", "Азат", "Әулиеата", "Болашақ", "Е.Сметов", "Жалын", "Каусар", "Көне Тараз", "Парасат", "Ұлытау", "Хан Тәңірі"];
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/leaderboard`)

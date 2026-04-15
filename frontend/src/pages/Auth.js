@@ -26,7 +26,7 @@ const Auth = ({ setIsAuthenticated }) => {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const shanyraqs = ["Kausar", "Altyn Orda", "Eldos Smetov"];
+  const shanyraqs = ["Алаш", "Алтын Орда", "Аманат", "Атамекен", "Азат", "Әулиеата", "Болашақ", "Е.Сметов", "Жалын", "Каусар", "Көне Тараз", "Парасат", "Ұлытау", "Хан Тәңірі"];
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
